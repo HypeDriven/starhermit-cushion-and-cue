@@ -1,0 +1,92 @@
+[
+  {
+    "name": "cue-strike-soft",
+    "seconds": 1,
+    "prompt": "Gentle leather cue tip tap on a phenolic pool ball, soft click with faint wooden cue resonance, close mic in a quiet pool hall",
+    "event": "strike"
+  },
+  {
+    "name": "cue-strike-hard",
+    "seconds": 1,
+    "prompt": "Sharp powerful cue stick strike on a pool ball, loud crisp leather tip crack with punchy attack, billiard hall acoustics",
+    "event": "strike"
+  },
+  {
+    "name": "ball-click-soft",
+    "seconds": 1,
+    "prompt": "Two pool balls lightly touching, soft delicate ivory clack, short and gentle, close mic",
+    "event": "ballClick"
+  },
+  {
+    "name": "ball-click-medium",
+    "seconds": 1,
+    "prompt": "Two billiard balls colliding at moderate speed, bright clean resin clack, crisp pool hall acoustics",
+    "event": "ballClick"
+  },
+  {
+    "name": "ball-click-hard",
+    "seconds": 1,
+    "prompt": "Hard fast collision of two phenolic pool balls, loud sharp percussive clack with a slight snap echo",
+    "event": "ballClick"
+  },
+  {
+    "name": "cushion-thump-soft",
+    "seconds": 1,
+    "prompt": "Pool ball gently bumping a rubber table cushion, soft low padded thud with muted felt contact",
+    "event": "cushion"
+  },
+  {
+    "name": "cushion-thump-hard",
+    "seconds": 1,
+    "prompt": "Pool ball slamming into a rubber cushion rail, deep firm thump with a brief felt vibration",
+    "event": "cushion"
+  },
+  {
+    "name": "pocket-drop",
+    "seconds": 2,
+    "prompt": "Pool ball dropping into a leather pocket, hollow knock followed by the ball rattling down and settling inside",
+    "event": "pocketDrop"
+  },
+  {
+    "name": "foul-buzz",
+    "seconds": 1,
+    "prompt": "Short low referee penalty buzzer, dull descending electronic buzz, subdued game show error tone",
+    "event": "foul"
+  },
+  {
+    "name": "ui-click",
+    "seconds": 1,
+    "prompt": "Small neat wooden button click, dry percussive tick, minimal clean interface sound",
+    "event": "uiClick"
+  },
+  {
+    "name": "ui-confirm",
+    "seconds": 1,
+    "prompt": "Soft positive confirmation tap, two quick gentle wooden knocks, friendly menu select sound",
+    "event": "uiClick"
+  },
+  {
+    "name": "turn-chime",
+    "seconds": 2,
+    "prompt": "Two soft ascending mallet chime notes announcing a turn change, warm glockenspiel ding, calm and clear",
+    "event": "turnChime"
+  },
+  {
+    "name": "hint-beep",
+    "seconds": 1,
+    "prompt": "Single gentle high bell ping used as a hint cue, soft rounded glass-like tone",
+    "event": "cueBeep"
+  },
+  {
+    "name": "win-fanfare",
+    "seconds": 3,
+    "prompt": "Short upbeat victory flourish, four rising bright mallet notes ending on a sparkling chime, warm triumphant celebration",
+    "event": "win"
+  },
+  {
+    "name": "lose-fanfare",
+    "seconds": 2,
+    "prompt": "Brief gentle defeat motif, three soft descending marimba notes fading out, sympathetic and quiet",
+    "event": "lose"
+  }
+]
