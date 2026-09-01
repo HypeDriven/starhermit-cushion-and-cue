@@ -281,7 +281,7 @@ function createThree(host, opts) {
     if (p.cbs.onDone) p.cbs.onDone();
   }
   function applyFrame(frame) {
-    if (!lastState) return;
+    if (!lastState || !frame) return;
     for (let i = 0; i < lastState.balls.length; i++) {
       const b = lastState.balls[i];
       const v = ballViews[b.n];
@@ -302,7 +302,7 @@ function createThree(host, opts) {
 
     if (playing) {
       const p = playing;
-      const elapsed = (now - p.start) / 1000;
+      const elapsed = Math.max(0, (now - p.start) / 1000);
       const fi = Math.min(p.trace.frames.length - 1, Math.floor(elapsed * 60));
       if (fi !== p.fi) { p.fi = fi; applyFrame(p.trace.frames[fi]); }
       // fire physics events whose sample tick has been reached
@@ -573,7 +573,7 @@ function create2D(host, opts) {
     raf = requestAnimationFrame(loop);
     if (playing) {
       const p = playing;
-      const fi = Math.min(p.trace.frames.length - 1, Math.floor((now - p.start) / (1000 / 60)));
+      const fi = Math.max(0, Math.min(p.trace.frames.length - 1, Math.floor((now - p.start) / (1000 / 60))));
       frameOverride = p.trace.frames[fi];
       const tickReached = fi * p.trace.every;
       while (p.pi < p.physics.length && p.physics[p.pi].tick <= p.tick0 + tickReached) {

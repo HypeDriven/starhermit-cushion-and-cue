@@ -153,6 +153,7 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 .help-card ul { padding-left: 18px; margin: 6px 0; }
 
 /* ---------- game screen ---------- */
+[hidden] { display: none !important; }
 .screen-game { max-width: none; padding: var(--sat) var(--sar) var(--sab) var(--sal); display: flex; flex-direction: column; height: 100vh; }
 .game-topbar {
   display: flex; gap: 18px; align-items: center; justify-content: space-between;
