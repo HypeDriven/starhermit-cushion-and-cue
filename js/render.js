@@ -7,7 +7,7 @@
  *
  * API: Render.create(host, opts) → {
  *   mode, setSnapshot(state), playTrace(trace, physics, {onPhysicsEvent,onDone}),
- *   skipTrace(), setAim(state, angleMilli|null), setLegalTargets(nums),
+ *   skipTrace(), cancelTrace(), setAim(state, angleMilli|null), setLegalTargets(nums),
  *   setPlacement(on), setPlacementGhost(x,y|null), tablePointFromScreen(cx,cy),
  *   setTheme(theme), setQuality(q), setHighContrast(b), setReducedMotion(b),
  *   resize(), dispose()
@@ -34,6 +34,7 @@ function createThree(host, opts) {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 30);
   const CAM = { y: 2.05, z: 1.05 };           // slightly tilted top-down framing
+  let camScale = 1;                           // widened by fitCamera() per aspect
   camera.position.set(0, CAM.y, CAM.z);
   camera.lookAt(0, 0, -0.08);
 
@@ -334,13 +335,14 @@ function createThree(host, opts) {
     }
 
     // camera shake (big events only; never under reduced motion)
+    const camY = CAM.y * camScale, camZ = CAM.z * camScale;
     if (shake > 0 && !reducedMotion) {
       shake = Math.max(0, shake - dt * 2.5);
       const s = shake * 0.02;
-      camera.position.set((Math.random() - 0.5) * s, CAM.y + (Math.random() - 0.5) * s, CAM.z);
+      camera.position.set((Math.random() - 0.5) * s, camY + (Math.random() - 0.5) * s, camZ);
       camera.lookAt(0, 0, -0.08);
-    } else if (camera.position.y !== CAM.y || camera.position.x !== 0) {
-      camera.position.set(0, CAM.y, CAM.z);
+    } else if (camera.position.y !== camY || camera.position.x !== 0) {
+      camera.position.set(0, camY, camZ);
       camera.lookAt(0, 0, -0.08);
     }
 
@@ -359,6 +361,27 @@ function createThree(host, opts) {
     return { x: hit.x, y: -hit.z };
   }
 
+  // Pull the camera back until the whole table (cushions included) is inside
+  // the frustum: a fixed height cropped the ends of the table on square and
+  // portrait viewports, hiding balls and four of the six pockets.
+  const FIT = new THREE.Vector3();
+  function fitCamera() {
+    const wx = T.PLAY_W / 2 + 0.13, wz = T.PLAY_H / 2 + 0.13;
+    const corners = [[-wx, -wz], [wx, -wz], [-wx, wz], [wx, wz]];
+    for (let i = 0; i < 10; i++) {
+      camera.position.set(0, CAM.y * camScale, CAM.z * camScale);
+      camera.lookAt(0, 0, -0.08);
+      camera.updateMatrixWorld();
+      let m = 0;
+      for (const [x, z] of corners) {
+        FIT.set(x, TABLE_TOP, z).project(camera);
+        m = Math.max(m, Math.abs(FIT.x), Math.abs(FIT.y));
+      }
+      if (Math.abs(m - 0.94) < 0.01) break;
+      camScale = clamp(camScale * (m / 0.94), 0.5, 6);
+    }
+  }
+
   function resize() {
     const w = host.clientWidth || 640, h = host.clientHeight || 480;
     const cap = quality === 'high' ? 2 : quality === 'medium' ? 1.5 : 1;
@@ -368,6 +391,7 @@ function createThree(host, opts) {
     renderer.domElement.style.height = '100%';
     camera.aspect = w / h;
     camera.updateProjectionMatrix();
+    fitCamera();
   }
 
   renderer.domElement.addEventListener('webglcontextlost', e => {
@@ -404,6 +428,8 @@ function createThree(host, opts) {
       playing = p;
     },
     skipTrace,
+    // drop an in-flight playback without firing onDone (restart / leave game)
+    cancelTrace() { playing = null; },
     setAim(state, angleMilli) {
       if (state == null || angleMilli == null || !state.balls[0] || state.balls[0].potted) {
         aimLine.visible = false; ghost.visible = false; cueStick.visible = false;
@@ -603,6 +629,7 @@ function create2D(host, opts) {
       draw(); frameOverride = null;
       if (p.cbs.onDone) p.cbs.onDone();
     },
+    cancelTrace() { playing = null; frameOverride = null; draw(); },
     setAim(state, a) { aimMilli = a; if (state) lastState = JSON.parse(JSON.stringify(state)); draw(); },
     setLegalTargets(nums) { legalSet = new Set(nums || []); draw(); },
     setPlacement(on) { if (!on) { placeG = null; draw(); } },

@@ -162,6 +162,9 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
   min-height: 48px; flex-wrap: wrap;
 }
 .hud-objective { font-weight: 600; }
+/* wide layouts show the rail itself, so neither drawer control is needed */
+.rail-toggle { display: none; margin: 0; }
+.rail-close { display: none; margin: 0 0 8px; }
 .hud-player { color: var(--accent); }
 .game-layout {
   flex: 1; display: grid; gap: 10px; min-height: 0;
@@ -254,13 +257,6 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
     grid-template-areas: "canvas" "right";
     grid-template-rows: 1fr auto;
   }
-  .rail-left {
-    position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: min(300px, 85vw);
-    transform: translateX(-105%); transition: transform 0.18s ease-out;
-    padding-top: calc(12px + var(--sat));
-  }
-  body.rail-left-open .rail-left { transform: none; }
-  body.reduced-motion .rail-left { transition: none; }
   .rail-right { flex-direction: row; flex-wrap: wrap; align-items: center; }
   .rail-right .control-block { flex: 1 1 140px; }
   #btn-shoot { margin-top: 0; flex: 1 1 100%; }
@@ -270,8 +266,10 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 /* portrait mobile: top status bar, square playfield, bottom thumb tray */
 @media (max-width: 700px) and (orientation: portrait) {
   .screen-game { height: 100dvh; }
-  .game-layout { grid-template-rows: minmax(0, 1fr) auto; }
-  .canvas-host { aspect-ratio: 1 / 1; max-height: 58vh; margin: 0 auto; width: 100%; }
+  /* table sits directly above the thumb tray; the tray fills what is left */
+  .game-layout { grid-template-rows: auto minmax(0, 1fr); }
+  /* the table is a wide rectangle: a square host only added empty bands */
+  .canvas-host { aspect-ratio: 8 / 5; max-height: 58vh; margin: 0 auto; width: 100%; }
 }
 
 /* landscape mobile: narrow status rail */
@@ -285,12 +283,31 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
   .game-topbar { min-height: 40px; padding-top: 4px; padding-bottom: 4px; font-size: 0.9rem; }
 }
 
+/* Objective rail becomes a toggled drawer wherever the layout drops its
+   "left" grid area (narrow widths and short landscape windows alike). */
+@media (max-width: 1023px), (max-height: 500px) and (orientation: landscape) {
+  .rail-toggle, .rail-close { display: inline-flex; }
+  .rail-left {
+    position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: min(300px, 85vw);
+    transform: translateX(-105%); transition: transform 0.18s ease-out, visibility 0.18s;
+    padding-top: calc(12px + var(--sat));
+    visibility: hidden;   /* closed drawer stays out of the tab order */
+  }
+  body.rail-left-open .rail-left { transform: none; visibility: visible; }
+  body.reduced-motion .rail-left { transition: none; }
+}
+
 /* left-handed: action rail moves left */
 body.left-handed .game-layout {
   grid-template-areas: "right canvas left";
 }
 @media (max-width: 1023px) {
   body.left-handed .game-layout { grid-template-areas: "canvas" "right"; }
+}
+@media (max-width: 1023px), (max-height: 500px) and (orientation: landscape) {
   body.left-handed .rail-left { left: auto; right: 0; transform: translateX(105%); }
   body.left-handed.rail-left-open .rail-left { transform: none; }
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  body.left-handed .game-layout { grid-template-columns: 220px 1fr; grid-template-areas: "right canvas"; }
 }

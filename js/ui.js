@@ -111,7 +111,12 @@ function showScreen(name) {
   for (const s of SCREENS) $('screen-' + s).hidden = (s !== name);
   currentScreen = name;
   const first = $('screen-' + name).querySelector('h1, h2, button, [tabindex]');
-  if (first && name !== 'game') first.focus();
+  if (first && name !== 'game') {
+    // headings are not focusable by default; make them programmatically so
+    // that screen changes actually move focus instead of dropping it to body
+    if (!first.hasAttribute('tabindex') && /^H[1-6]$/.test(first.tagName)) first.setAttribute('tabindex', '-1');
+    first.focus();
+  }
   if (name === 'game') $('canvas-host').focus();
 }
 
@@ -244,8 +249,13 @@ function startGame(cfg, opts) {
   Audio.unlock();
   Audio.reseed(cfg.seed >>> 0);
   lastMode = { cfg, opts };
+  // a restart can land mid-replay: drop the old playback before rebinding
+  renderer.cancelTrace();
+  toggleRail(false);
   sess = Session.create(cfg, { lesson: opts.lesson || null, ranked: cfg.kind === 'daily' });
   wireSession(sess);
+  $('btn-skip').hidden = true;
+  lockInput(false);
   aimMilli = 0; power = 450; spinTop = 0; spinSide = 0; placePoint = null;
   syncPowerUI(); syncSpinUI();
   $('lesson-banner').hidden = !opts.lesson;
@@ -259,6 +269,8 @@ function startGame(cfg, opts) {
 }
 
 function quitToHome() {
+  toggleRail(false);
+  if (renderer) renderer.cancelTrace();
   if (sess) { sess.pause('quit'); sess = null; }
   $('overlay-pause').hidden = true;
   $('overlay-results').hidden = true;
@@ -291,8 +303,10 @@ function wireSession(s) {
           renderer.setSnapshot(s.getState());
           $('btn-skip').hidden = true;
           lockInput(false);
-          refreshHUD();
+          // ack first: the session is still in 'resolving' here, so a HUD
+          // refresh before this leaves Shoot/Hint/Undo disabled for good.
           s.ackResolved();
+          refreshHUD();
         }
       });
     } else {
@@ -334,6 +348,10 @@ function lockInput(locked) {
 // ---------------------------------------------------------------- HUD ------
 function objectiveText(state) {
   if (!state) return '';
+  if (state.terminal) {
+    return state.terminal.reason === Rules.TERMINAL.CLEAR || state.terminal.reason === Rules.TERMINAL.EIGHT_DONE
+      ? 'Table finished.' : terminalReasonText(state.terminal.reason);
+  }
   if (state.ruleset === 'eightball') {
     const me = state.players[0];
     if (state.openTable || !me.group) return 'Pot any ball except the 8 to claim a group.';
@@ -528,9 +546,14 @@ function bindGameInput() {
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); resumeGame(); }
       return;
     }
+    // results overlay is modal: let its buttons own the keyboard
+    if (currentScreen === 'game' && !$('overlay-results').hidden) return;
     if (currentScreen !== 'game') {
-      if (e.key === 'Escape' && currentScreen !== 'home') { e.preventDefault(); showScreen('home'); }
+      if (e.key === 'Escape' && currentScreen !== 'home') { e.preventDefault(); goBack(); }
       return;
+    }
+    if (e.key === 'Escape' && document.body.classList.contains('rail-left-open')) {
+      e.preventDefault(); toggleRail(false); $('btn-rail').focus(); return;
     }
     if (!sess) return;
     const ae = document.activeElement;
@@ -593,10 +616,29 @@ function bindGameInput() {
   $('btn-undo').addEventListener('click', () => sess && sess.undo());
   $('btn-skip').addEventListener('click', () => renderer && renderer.skipTrace());
   $('btn-pause').addEventListener('click', pauseGame);
+  $('btn-rail').addEventListener('click', () => { Audio.uiClick(); toggleRail(); });
+  $('btn-rail-close').addEventListener('click', () => { Audio.uiClick(); toggleRail(false); $('btn-rail').focus(); });
 
   document.addEventListener('visibilitychange', () => {
     if (document.hidden && sess && sess.getPhase() === 'active') pauseGame('hidden');
   });
+}
+
+// Objective rail is a drawer on narrow/short layouts; the toggle is the only
+// way to reach it there, so keep the button's state and the body class in step.
+function toggleRail(open) {
+  const want = open == null ? !document.body.classList.contains('rail-left-open') : !!open;
+  document.body.classList.toggle('rail-left-open', want);
+  $('btn-rail').setAttribute('aria-expanded', String(want));
+  if (want) $('rail-left').focus();
+}
+
+function goBack() {
+  showScreen(currentScreen === 'settings' || currentScreen === 'help' ? returnScreen : 'home');
+  if (currentScreen === 'game' && sess && sess.getPhase() === 'paused') {
+    $('overlay-pause').hidden = false;
+    $('btn-resume').focus();
+  }
 }
 
 function pauseGame(reason) {
@@ -611,6 +653,7 @@ function resumeGame() {
   if (!sess) return;
   if (sess.resume()) {
     $('overlay-pause').hidden = true;
+    refreshHUD();
     $('canvas-host').focus();
     announce('Resumed.');
   }
@@ -788,8 +831,7 @@ function bindMenus() {
   for (const b of document.querySelectorAll('.btn-back')) {
     b.addEventListener('click', () => {
       Audio.uiClick();
-      const parent = b.closest('.screen').id.replace('screen-', '');
-      showScreen(parent === 'settings' || parent === 'help' ? returnScreen : 'home');
+      goBack();
     });
   }
 

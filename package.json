@@ -1,0 +1,14 @@
+{
+  "name": "cushion-and-cue",
+  "private": true,
+  "description": "Cushion & Cue — browser cue-sports game. CommonJS by default: server.js, js/*.js and tests/run-tests.js are UMD/CJS; the browser loads them as classic scripts. Dev-only ESM lives in .mjs files.",
+  "scripts": {
+    "test": "node tests/run-tests.js",
+    "test:e2e": "node tests/e2e.mjs",
+    "validate": "node tools/validate.js",
+    "serve": "node server.js"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.62.1"
+  }
+}

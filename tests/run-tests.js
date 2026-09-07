@@ -469,6 +469,22 @@ section('session: phases, undo, lessons, replay envelope', () => {
     'replay envelope final hash matches');
   eq(res.replay.schemaVersion, Session.REPLAY_SCHEMA, 'replay schema version');
 
+  // a replay finishing while paused must settle on resume, not be dropped
+  const psess = Session.create(cfg, {});
+  let settled = 0;
+  psess.on('settled', () => { settled++; });
+  psess.start();
+  psess.command({ type: 'shoot', angle: 500, power: 400, spinTop: 0, spinSide: 0 }, 'p1');
+  eq(psess.getPhase(), 'resolving', 'pause test: shot resolving');
+  ok(psess.pause('test'), 'pause during resolving');
+  psess.ackResolved();                      // trace finished behind the overlay
+  eq(psess.getPhase(), 'paused', 'ack while paused stays paused');
+  eq(settled, 0, 'ack while paused does not settle yet');
+  ok(psess.resume(), 'resume works');
+  eq(psess.getPhase(), 'active', 'resume returns to active');
+  eq(settled, 1, 'deferred shot settles exactly once on resume');
+  ok(psess.canUndo(), 'controls usable again after paused resolve');
+
   // ranked sessions cannot undo
   const daily = Session.create(Content.dailyConfig('2026-08-30'), { ranked: true });
   daily.start();

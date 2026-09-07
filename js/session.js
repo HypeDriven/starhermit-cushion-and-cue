@@ -48,6 +48,7 @@
     var lessonDone = false;
     var aiTimer = null;
     var lastActionId = null;
+    var pendingResolve = false;      // trace finished while paused
     var replay = null;                     // built at start, completed at end
     var result = null;
 
@@ -139,6 +140,8 @@
     }
 
     function scheduleAI() {
+      // never let two AI turns be queued at once (e.g. resume + ackResolved)
+      if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
       if (!isAITurn() || phase === 'results') return;
       emit('ai-thinking', { player: state.players[state.current].id });
       aiTimer = setTimeout(function () {
@@ -206,7 +209,8 @@
         };
         undoStack = [];
         lessonStep = 0; lessonDone = false;
-        result = null; lastActionId = null;
+        result = null; lastActionId = null; pendingResolve = false;
+        if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
         setPhase('active', 'start');
         emit('started', { state: state, cfg: cfg });
         if (lesson) emit('lesson', { done: false, step: 0, total: lesson.steps.length, text: lesson.steps[0].text });
@@ -231,6 +235,9 @@
       // UI calls after trace playback finishes or is skipped. Player shots
       // pass through 'resolving'; AI shots apply while 'active'.
       ackResolved: function () {
+        // a shot can finish playing back while the game is paused; settle it
+        // on resume instead of dropping it (which would strand the turn).
+        if (phase === 'paused') { pendingResolve = true; return; }
         if (phase === 'resolving') setPhase('active', 'resolved');
         if (phase !== 'active') return;
         emit('settled', { state: state });
@@ -277,7 +284,8 @@
       resume: function () {
         if (phase !== 'paused') return false;
         setPhase('active', 'resume');
-        scheduleAI();
+        if (pendingResolve) { pendingResolve = false; api.ackResolved(); }
+        else scheduleAI();
         return true;
       },
 

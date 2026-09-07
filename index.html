@@ -139,12 +139,14 @@
   <!-- ======================= GAME ======================= -->
   <section id="screen-game" class="screen screen-game" hidden aria-label="Game">
     <div class="game-topbar">
+      <button id="btn-rail" class="btn btn-small rail-toggle" aria-expanded="false" aria-controls="rail-left">Objective</button>
       <span id="hud-objective" class="hud-objective"></span>
       <span id="hud-player" class="hud-player"></span>
       <span id="hud-score" class="hud-score"></span>
     </div>
     <div class="game-layout">
-      <aside id="rail-left" class="rail rail-left" aria-label="Objective">
+      <aside id="rail-left" class="rail rail-left" aria-label="Objective" tabindex="-1">
+        <button id="btn-rail-close" class="btn btn-small rail-close">Close</button>
         <h3 class="rail-heading">Objective</h3>
         <p id="rail-objective-text"></p>
         <p id="rail-shots"></p>
