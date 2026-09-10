@@ -31,6 +31,7 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.webp': 'image/webp',
   '.opus': 'audio/ogg; codecs=opus',
   '.json': 'application/json; charset=utf-8',
   '.txt': 'text/plain; charset=utf-8'
@@ -113,6 +114,12 @@ function serveStatic(req, res, pathname) {
   const file = path.normalize(path.join(ROOT, rel));
   if (!file.startsWith(ROOT + path.sep) && file !== ROOT) {
     res.writeHead(403); res.end('forbidden'); return;
+  }
+  // dev-only material and dotfiles are never served
+  const relParts = path.relative(ROOT, file).split(path.sep);
+  if (relParts[0] === 'tests' || relParts[0] === 'tools' || relParts[0] === 'node_modules' ||
+      relParts.some(seg => seg.startsWith('.'))) {
+    res.writeHead(404); res.end('not found'); return;
   }
   fs.stat(file, (err, st) => {
     if (err || !st.isFile()) { res.writeHead(404); res.end('not found'); return; }

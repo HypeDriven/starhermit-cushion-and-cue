@@ -19,3 +19,9 @@ Generated with MOSS-SoundEffect v2.0, 48 kHz mono Opus (96 kbps VBR, loudness-no
 | hint-beep.opus | cueBeep | Single gentle high bell ping used as a hint cue, soft rounded glass-like tone |
 | win-fanfare.opus | win | Short upbeat victory flourish, four rising bright mallet notes ending on a sparkling chime, warm triumphant celebration |
 | lose-fanfare.opus | lose | Brief gentle defeat motif, three soft descending marimba notes fading out, sympathetic and quiet |
+| rack-setup.opus | rack | Fifteen billiard balls settling into a wooden triangle rack on cloth, a rapid cluster of soft resin clacks then quiet, close mic in a pool hall |
+| cue-place.opus | placeBall | A single pool ball set down gently onto felt cloth by hand, one soft muted tap with a faint fabric brush, close mic |
+| groups-set.opus | groups | Two quick decisive wooden knocks of a knuckle on a polished pool table rail, dry and short, quiet pool hall |
+| undo-rewind.opus | undo | Soft short reversed swish, a gentle quick backwards whoosh with a faint rising tone, subtle interface undo sound |
+| achievement-sparkle.opus | achievement | Bright short glockenspiel arpeggio of four quick rising notes with a soft shimmering sparkle tail, rewarding unlock jingle, warm and clear |
+| hall-ambience.opus | ambience | Quiet room tone of an intimate pool hall late at night, faint air conditioning hum, very distant low murmur of two or three patrons, one far-away ball click, steady and calm, no music |

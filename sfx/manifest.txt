@@ -1,0 +1,27 @@
+# Cushion & Cue — SFX manifest (canonical). One clip per line:
+# file | event id (CCAudio method / playSfx key, js/audio.js) | description of the sound | usage context
+# Clips: MOSS-SoundEffect v2.0, 48 kHz mono Opus 96 kbps VBR, loudness-normalised (-20 LUFS), 100 steps.
+# js/audio.js reads sfx/manifest.json for the file→event binding, picks a variant per event with the seeded AV stream,
+# and falls back to WebAudio synthesis while a clip is loading or if it fails. Buses: effects (impacts, UI), voice (chimes,
+# hint), music (fanfares, achievement), ambience (hall loop). Every clip below is on disk and bound to a live event.
+cue-strike-soft.opus | strike | Gentle leather cue tip tap on a phenolic pool ball, soft click with faint wooden cue resonance, close mic in a quiet pool hall | Cue strikes the cue ball at the start of every shot replay (ui.js wireSession 'applied' with trace → Audio.strike)
+cue-strike-hard.opus | strike | Sharp powerful cue stick strike on a pool ball, loud crisp leather tip crack with punchy attack, billiard hall acoustics | Variant of the same event; chosen at random by the seeded AV stream
+ball-click-soft.opus | ballClick | Two pool balls lightly touching, soft delicate ivory clack, short and gentle, close mic | Physics 'hit' event during trace playback (render onPhysicsEvent → Audio.ballClick)
+ball-click-medium.opus | ballClick | Two billiard balls colliding at moderate speed, bright clean resin clack, crisp pool hall acoustics | Variant of the same event
+ball-click-hard.opus | ballClick | Hard fast collision of two phenolic pool balls, loud sharp percussive clack with a slight snap echo | Variant of the same event
+cushion-thump-soft.opus | cushion | Pool ball gently bumping a rubber table cushion, soft low padded thud with muted felt contact | Physics 'cushion' event during trace playback (Audio.cushion)
+cushion-thump-hard.opus | cushion | Pool ball slamming into a rubber cushion rail, deep firm thump with a brief felt vibration | Variant of the same event
+pocket-drop.opus | pocketDrop | Pool ball dropping into a leather pocket, hollow knock followed by the ball rattling down and settling inside | Physics 'pocket' event during trace playback, with the pocket particle burst (Audio.pocketDrop)
+foul-buzz.opus | foul | Short low referee penalty buzzer, dull descending electronic buzz, subdued game show error tone | Rules 'foul' event after a shot resolves, with the assertive "Foul:" toast (Audio.foul)
+ui-click.opus | uiClick | Small neat wooden button click, dry percussive tick, minimal clean interface sound | Menu buttons, Back, Start, Shoot press, drag-aim release, objective drawer toggle (Audio.uiClick)
+ui-confirm.opus | uiClick | Soft positive confirmation tap, two quick gentle wooden knocks, friendly menu select sound | Variant of the same event
+turn-chime.opus | turnChime | Two soft ascending mallet chime notes announcing a turn change, warm glockenspiel ding, calm and clear | Trace-less state change that is not terminal (cue ball placed, AI placement) on the voice bus (Audio.turnChime)
+hint-beep.opus | cueBeep | Single gentle high bell ping used as a hint cue, soft rounded glass-like tone | Hint requested (H key or Hint button) before the aim guide or placement ghost moves (Audio.cueBeep)
+win-fanfare.opus | win | Short upbeat victory flourish, four rising bright mallet notes ending on a sparkling chime, warm triumphant celebration | Results overlay when the player wins (table clear or 8-ball match win) on the music bus (Audio.win)
+lose-fanfare.opus | lose | Brief gentle defeat motif, three soft descending marimba notes fading out, sympathetic and quiet | Results overlay when the player loses (shot limit, black early/scratch, match loss, resign) (Audio.lose)
+rack-setup.opus | rack | Fifteen billiard balls settling into a wooden triangle rack on cloth, a rapid cluster of soft resin clacks then quiet, close mic in a pool hall | Game start / restart / retry: the table is laid out (ui.js startGame → Audio.rack)
+cue-place.opus | placeBall | A single pool ball set down gently onto felt cloth by hand, one soft muted tap with a faint fabric brush, close mic | Ball-in-hand placement accepted by the rules (ui.js tryPlace → Audio.placeBall)
+groups-set.opus | groups | Two quick decisive wooden knocks of a knuckle on a polished pool table rail, dry and short, quiet pool hall | 8-ball 'groups' event: solids/stripes assigned after the first legal pot (Audio.groupsSet)
+undo-rewind.opus | undo | Soft short reversed swish, a gentle quick backwards whoosh with a faint rising tone, subtle interface undo sound | Shot undone (U key or Undo button) with the "Shot undone." toast (Audio.undo)
+achievement-sparkle.opus | achievement | Bright short glockenspiel arpeggio of four quick rising notes with a soft shimmering sparkle tail, rewarding unlock jingle, warm and clear | Results overlay lists a newly unlocked achievement; plays 0.7 s after the win/lose motif (Audio.achievement)
+hall-ambience.opus | ambience | Quiet room tone of an intimate pool hall late at night, faint air conditioning hum, very distant low murmur of two or three patrons, one far-away ball click, steady and calm, no music | Looped on the ambience bus from the first user gesture, replacing the synthesized low-pass noise once decoded (audio.js swapAmbience)

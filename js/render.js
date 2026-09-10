@@ -103,6 +103,19 @@ function createThree(host, opts) {
   scene.add(tableGroup);
   const TABLE_TOP = 0;                        // cloth surface height
   let tableParts = [];
+  // Authored felt weave (assets/cloth.webp), tinted by the theme's cloth
+  // colour. Flat colour is the fallback while loading or if it fails.
+  let clothTex = null;
+  let clothMesh = null;
+  try {
+    new THREE.TextureLoader().load('assets/cloth.webp', tex => {
+      tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+      tex.repeat.set(8, 4);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      clothTex = track(tex);
+      if (clothMesh) { clothMesh.material.map = tex; clothMesh.material.needsUpdate = true; }
+    }, undefined, () => { /* keep the flat cloth */ });
+  } catch (e) { /* no loader (tests, old browsers): flat cloth */ }
   function buildTable() {
     for (const o of tableParts) {
       tableGroup.remove(o);
@@ -114,9 +127,10 @@ function createThree(host, opts) {
     const add = mesh => { tableGroup.add(mesh); tableParts.push(mesh); return mesh; };
 
     const cloth = new THREE.Mesh(new THREE.BoxGeometry(T.PLAY_W + 0.24, 0.06, T.PLAY_H + 0.24),
-      new THREE.MeshStandardMaterial({ color: p.cloth, roughness: 0.92 }));
+      new THREE.MeshStandardMaterial({ color: p.cloth, roughness: 0.92, map: clothTex }));
     cloth.position.y = TABLE_TOP - 0.03;
     cloth.receiveShadow = true;
+    clothMesh = cloth;
     add(cloth);
 
     // cushions: 6 rail segments (gaps at pockets are cosmetic here)

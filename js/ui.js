@@ -248,6 +248,7 @@ function startGame(cfg, opts) {
   ensureRenderer();
   Audio.unlock();
   Audio.reseed(cfg.seed >>> 0);
+  Audio.rack();
   lastMode = { cfg, opts };
   // a restart can land mid-replay: drop the old playback before rebinding
   renderer.cancelTrace();
@@ -285,6 +286,7 @@ function wireSession(s) {
     for (const e of d.events) {
       if (e.type === 'foul') { Audio.foul(); toast('Foul: ' + foulText(e.foul), true); }
       if (e.type === 'groups') {
+        Audio.groupsSet();
         const st = s.getState();
         toast('Groups set: you are ' + (st.players[0].group || 'open') + '.');
       }
@@ -317,7 +319,7 @@ function wireSession(s) {
   });
   s.on('invalid', d => toast('Not legal: ' + invalidText(d.invalid), true));
   s.on('ai-thinking', () => { $('hud-player').textContent = 'House is aiming…'; announce('House is aiming.'); });
-  s.on('undone', () => { renderer.setSnapshot(s.getState()); refreshHUD(); toast('Shot undone.'); Audio.uiClick(); });
+  s.on('undone', () => { renderer.setSnapshot(s.getState()); refreshHUD(); toast('Shot undone.'); Audio.undo(); });
   s.on('hint', h => {
     Audio.cueBeep();
     if (h.shot) { aimMilli = h.shot.angle; syncAim(); toast('Hint: aim guide set to the suggested shot.'); }
@@ -479,10 +481,11 @@ function tryShoot() {
 
 function tryPlace() {
   if (!sess || !placePoint) return;
-  Audio.unlock(); Audio.uiClick();
+  Audio.unlock();
   const cmd = { type: 'place', x: Math.round(placePoint.x * 1000), y: Math.round(placePoint.y * 1000) };
   const res = sess.command(cmd, 'place-' + (++actionSeq));
   if (res && res.ok) {
+    Audio.placeBall();
     placePoint = null;
     renderer.setPlacementGhost(null);
     announce('Cue ball placed.');
@@ -699,7 +702,13 @@ function showResults(r) {
     li.textContent = '🏆 Achievement: ' + (a ? a.name : key);
     al.appendChild(li);
   }
-  if (newAch.length) announce('Achievement unlocked: ' + newAch.join(', '));
+  if (newAch.length) {
+    announce('Achievement unlocked: ' + newAch.join(', '));
+    setTimeout(() => Audio.achievement(), 700); // after the win/lose motif
+  }
+  // key art banner only on a win; stays hidden if the image failed to load
+  const art = $('res-art');
+  art.hidden = !won || art.dataset.failed === '1';
 
   if (won) Audio.win(); else Audio.lose();
   announce(headline + ' Score ' + r.score.total + ', ' + r.stars + ' stars.', true);

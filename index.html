@@ -203,6 +203,8 @@
 <!-- ======================= RESULTS OVERLAY ======================= -->
 <div id="overlay-results" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="res-headline">
   <div class="overlay-card">
+    <img id="res-art" class="res-art" src="assets/results-clear.webp" alt="" hidden
+         onerror="this.hidden=true;this.dataset.failed='1'">
     <h2 id="res-headline"></h2>
     <p id="res-stars" class="stars" aria-label="Stars earned"></p>
     <dl id="res-breakdown" class="breakdown"></dl>

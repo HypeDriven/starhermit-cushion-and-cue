@@ -85,7 +85,29 @@
         if (!item || typeof item.name !== 'string' || typeof item.event !== 'string') return;
         (sfxByEvent[item.event] = sfxByEvent[item.event] || []).push(item.name);
       });
+      swapAmbience();
     }).catch(function () { /* no samples available: synthesis stays in use */ });
+  }
+
+  // Replace the synthesized hall noise with the authored 'ambience' clip once
+  // it has decoded; any failure leaves the noise loop running untouched.
+  function swapAmbience() {
+    if (!ctx || !ambienceNodes || !sfxByEvent || !sfxByEvent.ambience || !sfxByEvent.ambience.length) return;
+    var name = sfxByEvent.ambience[0];
+    fetch('sfx/' + name + '.opus').then(function (res) {
+      if (!res.ok) throw new Error('ambience ' + res.status);
+      return res.arrayBuffer();
+    }).then(function (ab) { return ctx.decodeAudioData(ab); }).then(function (buf) {
+      if (!ambienceNodes || ambienceNodes.authored) return;
+      var src = ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      var g = ctx.createGain();
+      g.gain.value = 0.7;
+      src.connect(g); g.connect(buses.ambience);
+      src.start();
+      try { ambienceNodes.src.stop(); } catch (e) { /* already stopped */ }
+      ambienceNodes = { src: src, gain: g, authored: true };
+    }).catch(function () { /* keep the synthesized room tone */ });
   }
 
   function loadSfxClip(name) {
@@ -257,6 +279,45 @@
       if (!ctx) return;
       if (playSfx('cueBeep')) return;
       tone('voice', 'sine', 520, 520, 0.08, 0.14, ctx.currentTime);
+    },
+
+    rack: function () { // balls racked / table ready at game start
+      if (!ctx) return;
+      if (playSfx('rack')) return;
+      var t = ctx.currentTime;
+      for (var i = 0; i < 5; i++)
+        noiseBurst('effects', 0.03, 2800 + avRng.next() * 900, 4, 0.18, t + i * 0.045 + avRng.next() * 0.01);
+    },
+
+    placeBall: function () { // cue ball set down for ball-in-hand
+      if (!ctx) return;
+      if (playSfx('placeBall')) return;
+      var t = ctx.currentTime;
+      noiseBurst('effects', 0.04, 900, 1.2, 0.22, t);
+      tone('effects', 'sine', 240, 160, 0.07, 0.12, t);
+    },
+
+    groupsSet: function () { // solids/stripes assigned
+      if (!ctx) return;
+      if (playSfx('groups')) return;
+      var t = ctx.currentTime;
+      noiseBurst('effects', 0.035, 1500, 2.5, 0.25, t);
+      noiseBurst('effects', 0.035, 1500, 2.5, 0.25, t + 0.11);
+    },
+
+    undo: function () { // shot rewound
+      if (!ctx) return;
+      if (playSfx('undo')) return;
+      tone('effects', 'sine', 300, 700, 0.14, 0.12, ctx.currentTime);
+    },
+
+    achievement: function () { // achievement unlocked on the results card
+      if (!ctx) return;
+      if (playSfx('achievement')) return;
+      var t = ctx.currentTime;
+      var notes = [784, 988, 1175, 1568];
+      for (var i = 0; i < notes.length; i++)
+        tone('music', 'sine', notes[i], notes[i], 0.18, 0.16, t + i * 0.08);
     },
 
     win: function () {
