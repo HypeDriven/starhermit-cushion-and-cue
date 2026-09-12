@@ -203,11 +203,11 @@ Per the platform conventions (https://wiki.starhermit.com/):
 |---|---|
 | Packaging | `starhermit.txt` (`name=Cushion & Cue`, `launch=index.html`, `owner`, `server=server.js`, `version`, `contentVersion`, `cover=coverart.png`); `LICENSE.md` at root |
 | Server script | `server.js` runs `rules.js` authoritatively: `POST /api/v1/session/start {config}`, `POST /api/v1/session/:id/command {commandId, command}` (idempotent by commandId, state hash per transition, 422 on invalid), `GET /api/v1/session/:id` (reconnect source of truth), `POST …/resign`; in-memory store capped at 500 sessions; 16 KB body limit; refuses paths outside the root and never serves `tests/`, `tools/`, `node_modules/` or dotfiles |
-| Platform time | Client fetches `GET /api/v1/time` once at start and offsets the daily date by `epochMs − Date.now()`; falls back to the local UTC clock offline |
-| Identity | Local display name only (`profile-name`, saved in settings); no platform login, presence or avatar |
-| Saves | Local `localStorage['cushion-and-cue-save-v1']`, versioned and FNV-checksummed (a corrupt document resets cleanly); no cloud save |
+| Platform time | Client fetches `GET /api/v1/time` (Bearer when hosted) once at start and offsets the daily date by `epochMs − Date.now()`; falls back to the local UTC clock offline |
+| Identity | `js/platform.js` reads `#game_token=<jwt>` from the URL fragment (stripped after the read; query forms for local dev), decodes `sub` + `game_scope` (never hard-coded), sends `Authorization: Bearer` on every call, and re-mints every 45 min via `POST /api/v1/games/{slug}/launch-token` (60 s retry). Hosted: the account nickname from `GET /api/v1/users/{sub}/profile` (never usernames, never `/api/v1/me`) replaces the editable local name (read-only then; it stays the offline fallback) and the home screen shows "Playing as <nickname> · sync status". Offline: local display name only (`profile-name`, saved in settings); no platform login, presence or avatar |
+| Saves | Local `localStorage['cushion-and-cue-save-v1']`, versioned and FNV-checksummed (a corrupt document resets cleanly). When hosted, the save mirrors to one zip+base64 cloud slot at `GET/PUT /api/v1/me/cloud-saves/{slug}` — remote wins on boot (checksum-validated through the same `parseSave`), saves debounce 2 s and flush on `pagehide`/hidden with keepalive, and the home line reflects sync status |
 | Achievements | Six stable lowercase keys unlocked idempotently in the local save; not submitted to the platform |
-| Leaderboards, matchmaking, invitations, chat, voice, presence, replays upload | Not used. The client never calls the session API; replay envelopes are built locally (`session.getReplay()`) but not transmitted |
+| Leaderboards, matchmaking, invitations, chat, voice, presence, replays upload | Not used. The client never calls the session API (the authoritative routes exist for the declared `server=server.js` and would carry the Bearer header); replay envelopes are built locally (`session.getReplay()`) but not transmitted |
 
 ## 13. Technical architecture
 

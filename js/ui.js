@@ -71,6 +71,18 @@ function loadSave() {
 function persistSave() {
   save.checksum = checksumDoc(save);
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
+  if (window.CQCPlatform && typeof window.CQCPlatform.onSave === 'function')
+    window.CQCPlatform.onSave(JSON.stringify(save)); // mirror to the cloud slot
+}
+// Validates a save doc (local or from the cloud slot); null on bad shape or
+// checksum. Remote-preferred loads go through here.
+function parseSave(json) {
+  try {
+    const doc = typeof json === 'string' ? JSON.parse(json) : json;
+    if (!doc || doc.version !== SAVE_VERSION) return null;
+    if (doc.checksum !== checksumDoc(doc)) return null;
+    return doc;
+  } catch (e) { return null; }
 }
 
 // ---------------------------------------------------------------- state ----
@@ -894,13 +906,60 @@ function updateHomeProgress() {
 function syncServerTime() {
   // optional: adjust daily boundary against the authoritative clock
   const t0 = Date.now();
-  fetch('/api/v1/time').then(r => r.json()).then(d => {
-    if (typeof d.epochMs === 'number') serverOffsetMs = d.epochMs - Date.now();
-  }).catch(() => { /* offline: local UTC clock is fine */ });
+  fetch('/api/v1/time', { headers: window.CQCPlatform ? window.CQCPlatform.headers() : {} })
+    .then(r => r.json()).then(d => {
+      if (typeof d.epochMs === 'number') serverOffsetMs = d.epochMs - Date.now();
+    }).catch(() => { /* offline: local UTC clock is fine */ });
+}
+
+// Account + cloud-sync status line on the home screen. Offline keeps the
+// identical local-only behaviour; hosted shows the account nickname.
+function renderAccountLine() {
+  const el = document.getElementById('account-line');
+  const P = window.CQCPlatform;
+  if (!el || !P) return;
+  if (!P.hosted) {
+    el.textContent = 'Offline — progress is stored on this device.';
+    return;
+  }
+  const name = P.profile ? P.profile.name : '…';
+  el.textContent = 'Playing as ' + name + ' · ' +
+    (P.sync === 'synced' ? 'progress synced'
+      : P.sync === 'saving' ? 'saving…'
+      : 'cloud sync pending');
 }
 
 // ---------------------------------------------------------------- init -----
 export function init() {
+  // Platform handshake: token read, remote save wins, account nickname.
+  const P = window.CQCPlatform;
+  if (P) {
+    try { P.init(); } catch (e) { /* offline */ }
+    if (P.hosted) {
+      try { P.onSync(renderAccountLine); } catch (e) { /* ok */ }
+      P.fetchProfile().then(() => {
+        renderAccountLine();
+        // The account nickname replaces the editable local name when hosted
+        // (the input stays as the offline fallback).
+        if (P.profile) {
+          settings.name = P.profile.name;
+          saveSettings();
+          const nameInput = document.getElementById('profile-name');
+          if (nameInput) { nameInput.value = P.profile.name; nameInput.disabled = true; }
+        }
+      }).catch(() => {});
+      P.loadCloud().then((remoteJson) => {
+        const remote = remoteJson ? parseSave(remoteJson) : null;
+        if (remote) {
+          save = remote;
+          persistSave(); // local cache mirrors the remote doc
+          updateHomeProgress();
+        }
+        renderAccountLine();
+      }).catch(() => {});
+    }
+    renderAccountLine();
+  }
   applySettingsClasses();
   buildLists();
   buildHelp();
