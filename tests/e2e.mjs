@@ -102,7 +102,7 @@ async function runPass(browser, pass, viewport, hasTouch) {
   const errors = [];
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
-    if (m.type() === 'error' && !browserNoise.test(m.text())) errors.push(`console: ${m.text()}`);
+    if ((m.type() === 'error' || m.type() === 'warning') && !browserNoise.test(m.text())) errors.push(`console ${m.type()}: ${m.text()}`);
   });
 
   const step = async (name, fn) => {
@@ -159,6 +159,55 @@ async function runPass(browser, pass, viewport, hasTouch) {
       await page.waitForSelector('#screen-home:not([hidden])');
     });
 
+    await step('graphics settings: presets, override, persistence across reload', async () => {
+      await page.click('#btn-settings');
+      await page.waitForSelector('#screen-settings:not([hidden])');
+      const auto = await page.textContent('#set-quality option[value="auto"]');
+      if (!/detected/i.test(auto)) throw new Error('Auto option should name the detected tier: ' + auto);
+      await page.locator('#set-graphics').scrollIntoViewIfNeeded();
+      await page.selectOption('#set-quality', 'low');
+      if (await page.getAttribute('body', 'data-gfx-preset') !== 'low') throw new Error('Low preset not applied');
+      await page.selectOption('#set-quality', 'high');
+      if (await page.getAttribute('body', 'data-gfx-preset') !== 'high') throw new Error('High preset not applied');
+      if (!/From preset \(Medium\)/.test(await page.textContent('#gfx-shadows option[value="preset"]'))) {
+        throw new Error('category default should read "From preset (Medium)" at High');
+      }
+      await page.selectOption('#gfx-bloom', 'off');
+      await page.check('#gfx-fps');
+      await page.locator('#gfx-scale').fill('150');
+      const summary = await page.textContent('#gfx-summary');
+      if (/Bloom/.test(summary) || !/Shadows 2048/.test(summary)) throw new Error('summary does not reflect the override: ' + summary);
+      // the panel fits: no horizontal overflow on the page or inside the fieldset
+      const fit = await page.evaluate(() => {
+        const fs = document.getElementById('set-graphics');
+        return { page: document.documentElement.scrollWidth <= window.innerWidth + 1,
+          fs: fs.scrollWidth <= fs.clientWidth + 1, right: fs.getBoundingClientRect().right <= window.innerWidth + 1 };
+      });
+      if (!fit.page || !fit.fs || !fit.right) throw new Error('graphics panel overflows: ' + JSON.stringify(fit));
+      await page.screenshot({ path: SHOT('graphics', pass), fullPage: true });
+      await page.reload({ waitUntil: 'load' });
+      await page.waitForSelector('#screen-home:not([hidden])');
+      await page.click('#btn-settings');
+      await page.waitForSelector('#screen-settings:not([hidden])');
+      const kept = await page.evaluate(() => ({
+        preset: document.getElementById('set-quality').value,
+        bloom: document.getElementById('gfx-bloom').value,
+        fps: document.getElementById('gfx-fps').checked,
+        scale: document.getElementById('gfx-scale').value,
+        body: document.body.dataset.gfxPreset
+      }));
+      if (kept.preset !== 'high' || kept.bloom !== 'off' || !kept.fps || kept.scale !== '150' || kept.body !== 'high') {
+        throw new Error('graphics settings not persisted: ' + JSON.stringify(kept));
+      }
+      // choosing a preset clears overrides; Low keeps the software-GPU run fast
+      await page.selectOption('#set-quality', 'low');
+      if (await page.inputValue('#gfx-bloom') !== 'preset') throw new Error('preset change should clear overrides');
+      await page.uncheck('#gfx-fps');
+      await page.locator('#gfx-scale').fill('100');
+      await page.locator('#screen-settings .btn-back').click();
+      await page.waitForSelector('#screen-home:not([hidden])');
+    });
+
     await step('Play → setup for journey stage 1 (First Stroke)', async () => {
       await page.click('#btn-play');
       await page.waitForSelector('#screen-setup:not([hidden])');
@@ -191,6 +240,33 @@ async function runPass(browser, pass, viewport, hasTouch) {
         await rail.waitFor({ state: 'hidden', timeout: 3000 });
       });
     }
+
+    await step('in-game graphics switch applies live (Ultra, then back to Low)', async () => {
+      await page.click('#btn-pause');
+      await page.waitForSelector('#overlay-pause:not([hidden])');
+      await page.click('#btn-pause-settings');
+      await page.waitForSelector('#screen-settings:not([hidden])');
+      await page.selectOption('#set-quality', 'ultra');
+      const canvasPreset = await page.evaluate(() => document.querySelector('#canvas-host canvas').dataset.gfxPreset);
+      if (canvasPreset !== 'ultra') throw new Error('renderer did not apply Ultra: ' + canvasPreset);
+      if (!/px/.test(await page.textContent('#gfx-summary'))) throw new Error('summary lacks pixel size while a table is open');
+      await page.locator('#screen-settings .btn-back').click();
+      await page.waitForSelector('#overlay-pause:not([hidden])');
+      await page.click('#btn-resume');
+      await page.waitForTimeout(1200);                     // a few Ultra frames through the full post chain
+      await page.screenshot({ path: SHOT('ultra', pass) });
+      await page.click('#btn-pause');
+      await page.click('#btn-pause-settings');
+      await page.waitForSelector('#screen-settings:not([hidden])');
+      await page.selectOption('#set-quality', 'low');
+      if (await page.evaluate(() => document.querySelector('#canvas-host canvas').dataset.gfxPreset) !== 'low') {
+        throw new Error('renderer did not return to Low');
+      }
+      await page.locator('#screen-settings .btn-back').click();
+      await page.waitForSelector('#overlay-pause:not([hidden])');
+      await page.click('#btn-resume');
+      await page.waitForSelector('#overlay-pause', { state: 'hidden' });
+    });
 
     await step('pause and resume via the overlay', async () => {
       await page.click('#btn-pause');

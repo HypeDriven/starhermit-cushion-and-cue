@@ -493,6 +493,50 @@ section('session: phases, undo, lessons, replay envelope', () => {
   ok(!daily.canUndo(), 'daily/ranked: undo disabled');
 });
 
+// ------------------------------------------------------------- graphics ----
+section('gfx: GPU detection, resolve, overrides, scale clamp', () => {
+  const Gfx = require('../js/gfx.js');
+  eq(Gfx.detectPreset('Google SwiftShader'), 'low', 'swiftshader → low');
+  eq(Gfx.detectPreset('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)'), 'low', 'ANGLE swiftshader → low');
+  eq(Gfx.detectPreset('llvmpipe (LLVM 15.0.7, 256 bits)'), 'low', 'llvmpipe → low');
+  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Direct3D11 vs_5_0 ps_5_0)'), 'high', 'geforce → high');
+  eq(Gfx.detectPreset('Apple M2'), 'high', 'apple M → high');
+  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)'), 'balanced', 'intel igpu → balanced');
+  eq(Gfx.detectPreset(''), 'balanced', 'unknown → balanced');
+  eq(Gfx.detectPreset('Apple M2', true), 'balanced', 'mobile caps Auto at balanced');
+  eq(Gfx.detectPreset('Mali-G78', true), 'balanced', 'mobile mali → balanced');
+
+  const auto = Gfx.resolve({}, 'low');
+  ok(auto.auto && auto.preset === 'low', 'empty save = Auto using detected preset');
+  eq(auto.post, false, 'low needs no post chain');
+  eq(auto.shadows, 'off', 'low: no shadows');
+  eq(auto.particles, 'off', 'low: no particles');
+  eq(auto.cap, 1, 'low caps pixel ratio at 1');
+  const hi = Gfx.resolve({ preset: 'high' }, 'low');
+  ok(!hi.auto && hi.preset === 'high' && hi.post, 'explicit high preset');
+  eq(hi.shadows, 'medium', 'high: medium shadows');
+  eq(Gfx.resolve({ preset: 'high', bloom: 'off' }, 'low').bloom, 'off', 'override wins over preset');
+  eq(Gfx.resolve({ preset: 'high', bloom: 'bogus' }, 'low').bloom, 'on', 'invalid override ignored');
+  eq(Gfx.resolve({ preset: 'nope' }, 'balanced').preset, 'balanced', 'unknown preset → Auto');
+  eq(Gfx.resolve({ render_scale: 5 }, 'high').renderScale, 2, 'render scale clamped to 200%');
+  eq(Gfx.resolve({ render_scale: 0.1 }, 'high').renderScale, 0.5, 'render scale clamped to 50%');
+  eq(Gfx.resolve({ preset: 'ultra', render_scale: 1 }, 'low').scale, 1.25, 'ultra supersamples');
+  eq(Gfx.resolve({}, 'low').adaptive, true, 'adaptive defaults on');
+  eq(Gfx.resolve({}, 'low').showFps, false, 'fps readout defaults off');
+  eq(Gfx.resolve({ preset: 'low', ao: 'on' }, 'low').post, true, 'an AO override turns the post chain on');
+
+  const cleared = Gfx.choosePreset({ preset: 'high', bloom: 'off', shadows: 'high', render_scale: 1.5, adaptive: false }, 'ultra');
+  eq(cleared.preset, 'ultra', 'choosePreset sets preset');
+  ok(!('bloom' in cleared) && !('shadows' in cleared), 'choosing a preset clears overrides');
+  ok(cleared.render_scale === 1.5 && cleared.adaptive === false, 'scale and adaptive survive preset change');
+  eq(Gfx.presetTier('balanced', 'antialias'), 'fxaa', 'presetTier');
+  ok(/no shadows/.test(Gfx.describe(Gfx.resolve({}, 'low'), [800, 600])) && /800×600 px/.test(Gfx.describe(auto, [800, 600])), 'describe summary');
+  for (const p of Gfx.PRESETS) {
+    const r = Gfx.resolve({ preset: p }, 'low');
+    for (const cat in Gfx.CATEGORIES) ok(Gfx.CATEGORIES[cat].includes(r[cat]), `preset ${p} has a valid ${cat} tier`);
+  }
+});
+
 // ------------------------------------------------------------- summary -----
 console.log('');
 console.log(`passed: ${passed}, failed: ${failed}`);

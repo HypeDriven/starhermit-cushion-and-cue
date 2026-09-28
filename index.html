@@ -8,11 +8,12 @@
 <link rel="icon" href="favicon.png" type="image/png">
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">
-{ "imports": { "three": "./vendor/three.module.min.js" } }
+{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/three/addons/" } }
 </script>
 <script src="js/rng.js"></script>
 <script src="js/rules.js"></script>
 <script src="js/content.js"></script>
+<script src="js/gfx.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/platform.js"></script>
 <script src="js/session.js"></script>
@@ -103,13 +104,6 @@
         <label>Theme
           <select id="set-theme"></select>
         </label>
-        <label>Graphics quality
-          <select id="set-quality">
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-        </label>
         <label class="check"><input type="checkbox" id="set-contrast"> High contrast</label>
         <label class="check"><input type="checkbox" id="set-motion"> Reduced motion</label>
         <label class="check"><input type="checkbox" id="set-text"> Larger text</label>
@@ -122,6 +116,20 @@
         <label>Ambience <input type="range" id="vol-ambience" min="0" max="100" step="1"></label>
         <label>Voice cues <input type="range" id="vol-voice" min="0" max="100" step="1"></label>
         <label class="check"><input type="checkbox" id="set-mute"> Mute all</label>
+      </fieldset>
+      <fieldset id="set-graphics" class="gfx-fieldset">
+        <legend id="gfx-legend">Graphics</legend>
+        <div id="gfx-body" class="gfx-body">
+          <label><span id="gfx-quality-label">Quality</span>
+            <select id="set-quality">
+              <option value="auto">Auto</option>
+              <option value="low">Low</option>
+              <option value="balanced">Balanced</option>
+              <option value="high">High</option>
+              <option value="ultra">Ultra</option>
+            </select>
+          </label>
+        </div>
       </fieldset>
       <fieldset>
         <legend>Learning</legend>

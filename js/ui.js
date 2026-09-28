@@ -4,6 +4,7 @@
  * through CCSession/CCRules.
  */
 import * as Render from './render.js';
+import { mountGraphicsPanel, probeGpu } from './gfx-ui.js';
 
 const Rules = window.CCRules;
 const Content = window.CCContent;
@@ -18,7 +19,7 @@ const $ = id => document.getElementById(id);
 
 // ---------------------------------------------------------------- settings -
 const defaultSettings = {
-  theme: 'tournament', quality: 'high',
+  theme: 'tournament', quality: 'auto', gfx: {}, gfxV: 1,
   highContrast: false, reducedMotion: false, largerText: false, leftHanded: false,
   name: 'Guest'
 };
@@ -27,7 +28,17 @@ let settings = loadSettings();
 function loadSettings() {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
-    if (raw) return Object.assign({}, defaultSettings, JSON.parse(raw));
+    if (raw) {
+      const s = Object.assign({}, defaultSettings, { gfxV: 0 }, JSON.parse(raw));
+      if (!s.gfxV) {
+        // v0 had one High/Medium/Low select defaulting to High: map it onto
+        // the preset model (the old default becomes Auto).
+        s.quality = { low: 'low', medium: 'balanced' }[s.quality] || 'auto';
+        s.gfxV = 1;
+      }
+      if (!s.gfx || typeof s.gfx !== 'object') s.gfx = {};
+      return s;
+    }
   } catch (e) { /* keep defaults */ }
   return Object.assign({}, defaultSettings);
 }
@@ -42,11 +53,16 @@ function applySettingsClasses() {
   document.body.classList.toggle('left-handed', settings.leftHanded);
   if (renderer) {
     renderer.setTheme(Content.themeById(settings.theme));
-    renderer.setQuality(settings.quality);
+    renderer.setGraphics(gfxSaved());
     renderer.setHighContrast(settings.highContrast);
     renderer.setReducedMotion(settings.reducedMotion);
   }
 }
+
+// Graphics settings as CCGfx reads them: preset in settings.quality (kept
+// under that key for compatibility), overrides/scale/toggles in settings.gfx.
+function gfxSaved() { return Object.assign({}, settings.gfx, { preset: settings.quality }); }
+let gfxPanel = null;
 
 // ---------------------------------------------------------------- save -----
 function blankSave() {
@@ -122,6 +138,7 @@ let returnScreen = 'home';
 function showScreen(name) {
   for (const s of SCREENS) $('screen-' + s).hidden = (s !== name);
   currentScreen = name;
+  if (name === 'settings' && gfxPanel) gfxPanel.refresh();
   const first = $('screen-' + name).querySelector('h1, h2, button, [tabindex]');
   if (first && name !== 'game') {
     // headings are not focusable by default; make them programmatically so
@@ -137,7 +154,9 @@ function ensureRenderer() {
   if (renderer) return;
   renderer = Render.create($('canvas-host'), {
     theme: Content.themeById(settings.theme),
-    quality: settings.quality,
+    graphics: gfxSaved(),
+    gpu: probeGpu().gpu,
+    detected: probeGpu().detected,
     highContrast: settings.highContrast,
     reducedMotion: settings.reducedMotion,
     decorSeed: 7,
@@ -810,8 +829,17 @@ function bindSettings() {
   }
   themeSel.value = settings.theme;
   themeSel.addEventListener('change', () => { settings.theme = themeSel.value; saveSettings(); applySettingsClasses(); });
-  $('set-quality').value = settings.quality;
-  $('set-quality').addEventListener('change', () => { settings.quality = $('set-quality').value; saveSettings(); applySettingsClasses(); });
+  gfxPanel = mountGraphicsPanel({
+    getSaved: gfxSaved,
+    setSaved(next) {
+      settings.quality = next.preset || 'auto';
+      settings.gfx = Object.assign({}, next);
+      delete settings.gfx.preset;
+      saveSettings();
+      if (renderer) renderer.setGraphics(gfxSaved());
+    },
+    getRenderer: () => renderer
+  });
   for (const [id, key] of [['set-contrast', 'highContrast'], ['set-motion', 'reducedMotion'], ['set-text', 'largerText'], ['set-lefthand', 'leftHanded']]) {
     $(id).checked = settings[key];
     $(id).addEventListener('change', () => { settings[key] = $(id).checked; saveSettings(); applySettingsClasses(); });
