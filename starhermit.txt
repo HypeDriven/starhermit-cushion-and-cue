@@ -1,4 +1,5 @@
 name=Cushion & Cue
+description=Aim with power and spin to clear pool-table challenges or take on the house in a game of 8-ball.
 launch=index.html
 owner=2712e04e-461b-4d23-81ae-e40b429128a8
 server=server.js
