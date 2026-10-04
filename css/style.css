@@ -351,3 +351,5 @@ body.left-handed .game-layout {
 @media (max-height: 500px) and (orientation: landscape) {
   body.left-handed .game-layout { grid-template-columns: 220px 1fr; grid-template-areas: "right canvas"; }
 }
+.platform-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.platform-row[hidden], .platform-row [hidden] { display: none; }

@@ -988,7 +988,8 @@ function create2D(host, opts) {
   let scale = 1, ox = 0, oy = 0;
   let playing = null, raf = 0, disposed = false;
 
-  function toScreen(x, y) { return { x: ox + (x - T.MIN_X) * scale, y: oy + (y - T.MIN_Y) * scale }; }
+  // Match the 3D table: positive simulation Y appears toward the top.
+  function toScreen(x, y) { return { x: ox + (x - T.MIN_X) * scale, y: oy + (T.MAX_Y - y) * scale }; }
   function resize() {
     const w = host.clientWidth || 640, h = host.clientHeight || 480;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -1006,10 +1007,10 @@ function create2D(host, opts) {
     const w = canvas.clientWidth || 640, h = canvas.clientHeight || 480;
     const p = theme.palette;
     g.fillStyle = hex(p.fog); g.fillRect(0, 0, w, h);
-    const tl = toScreen(T.MIN_X - 0.2, T.MIN_Y - 0.2);
-    const br = toScreen(T.MAX_X + 0.2, T.MAX_Y + 0.2);
+    const tl = toScreen(T.MIN_X - 0.2, T.MAX_Y + 0.2);
+    const br = toScreen(T.MAX_X + 0.2, T.MIN_Y - 0.2);
     g.fillStyle = hex(p.wood); g.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
-    const cl = toScreen(T.MIN_X, T.MIN_Y), cr = toScreen(T.MAX_X, T.MAX_Y);
+    const cl = toScreen(T.MIN_X, T.MAX_Y), cr = toScreen(T.MAX_X, T.MIN_Y);
     g.fillStyle = hex(p.cloth); g.fillRect(cl.x, cl.y, cr.x - cl.x, cr.y - cl.y);
     g.fillStyle = '#0a0a0c';
     for (const pk of T.POCKETS) {
@@ -1104,7 +1105,7 @@ function create2D(host, opts) {
     setPlacementGhost(x, y) { placeG = x == null ? null : { x, y }; draw(); },
     tablePointFromScreen(cx, cy) {
       const rect = canvas.getBoundingClientRect();
-      return { x: T.MIN_X + (cx - rect.left - ox) / scale, y: T.MIN_Y + (cy - rect.top - oy) / scale };
+      return { x: T.MIN_X + (cx - rect.left - ox) / scale, y: T.MAX_Y - (cy - rect.top - oy) / scale };
     },
     burstAt() {},
     setTheme(t) { theme = t; draw(); },

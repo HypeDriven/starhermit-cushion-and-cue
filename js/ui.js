@@ -4,7 +4,7 @@
  * through CCSession/CCRules.
  */
 import * as Render from './render.js';
-import { mountGraphicsPanel, probeGpu } from './gfx-ui.js';
+import { mountGraphicsPanel, probeGpu, pickLocale } from './gfx-ui.js';
 
 const Rules = window.CCRules;
 const Content = window.CCContent;
@@ -44,7 +44,49 @@ function loadSettings() {
 }
 function saveSettings() {
   try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+  pushSettings();
 }
+
+// ---------------------------------------------------------------- platform -
+// StarHermit strings (account line, sign-in, invite, toasts) in nine locales.
+const PT = {
+  'en-US': { offline: 'Offline — progress is stored on this device.', playing: 'Playing as {name}', synced: 'progress synced', saving: 'saving…', nosync: 'cloud sync unavailable', signIn: 'Sign in with StarHermit', invite: 'Invite a friend', copied: 'Invite link copied to the clipboard.', copyFail: 'Could not copy — invite link: {link}' },
+  'en-GB': { offline: 'Offline — progress is stored on this device.', playing: 'Playing as {name}', synced: 'progress synced', saving: 'saving…', nosync: 'cloud sync unavailable', signIn: 'Sign in with StarHermit', invite: 'Invite a friend', copied: 'Invite link copied to the clipboard.', copyFail: 'Could not copy — invite link: {link}' },
+  'es-419': { offline: 'Sin conexión: el progreso se guarda en este dispositivo.', playing: 'Jugando como {name}', synced: 'progreso sincronizado', saving: 'guardando…', nosync: 'sincronización en la nube no disponible', signIn: 'Iniciar sesión con StarHermit', invite: 'Invitar a un amigo', copied: 'Enlace de invitación copiado al portapapeles.', copyFail: 'No se pudo copiar. Enlace de invitación: {link}' },
+  'es-ES': { offline: 'Sin conexión: el progreso se guarda en este dispositivo.', playing: 'Jugando como {name}', synced: 'progreso sincronizado', saving: 'guardando…', nosync: 'sincronización en la nube no disponible', signIn: 'Iniciar sesión con StarHermit', invite: 'Invitar a un amigo', copied: 'Enlace de invitación copiado al portapapeles.', copyFail: 'No se ha podido copiar. Enlace de invitación: {link}' },
+  'de-DE': { offline: 'Offline – der Fortschritt wird auf diesem Gerät gespeichert.', playing: 'Du spielst als {name}', synced: 'Fortschritt synchronisiert', saving: 'wird gespeichert…', nosync: 'Cloud-Synchronisierung nicht verfügbar', signIn: 'Mit StarHermit anmelden', invite: 'Freund einladen', copied: 'Einladungslink in die Zwischenablage kopiert.', copyFail: 'Kopieren fehlgeschlagen – Einladungslink: {link}' },
+  'fr-FR': { offline: 'Hors ligne : la progression est enregistrée sur cet appareil.', playing: 'Vous jouez en tant que {name}', synced: 'progression synchronisée', saving: 'enregistrement…', nosync: 'synchronisation cloud indisponible', signIn: 'Se connecter avec StarHermit', invite: 'Inviter un ami', copied: 'Lien d’invitation copié dans le presse-papiers.', copyFail: 'Copie impossible — lien d’invitation : {link}' },
+  'fr-CA': { offline: 'Hors ligne : la progression est enregistrée sur cet appareil.', playing: 'Vous jouez en tant que {name}', synced: 'progression synchronisée', saving: 'enregistrement…', nosync: 'synchronisation infonuagique non disponible', signIn: 'Se connecter avec StarHermit', invite: 'Inviter un ami', copied: 'Lien d’invitation copié dans le presse-papiers.', copyFail: 'Copie impossible — lien d’invitation : {link}' },
+  'pt-BR': { offline: 'Offline — o progresso fica salvo neste dispositivo.', playing: 'Jogando como {name}', synced: 'progresso sincronizado', saving: 'salvando…', nosync: 'sincronização na nuvem indisponível', signIn: 'Entrar com StarHermit', invite: 'Convidar um amigo', copied: 'Link de convite copiado para a área de transferência.', copyFail: 'Não foi possível copiar — link de convite: {link}' },
+  'it-IT': { offline: 'Offline: i progressi sono salvati su questo dispositivo.', playing: 'Giochi come {name}', synced: 'progressi sincronizzati', saving: 'salvataggio…', nosync: 'sincronizzazione cloud non disponibile', signIn: 'Accedi con StarHermit', invite: 'Invita un amico', copied: 'Link di invito copiato negli appunti.', copyFail: 'Impossibile copiare. Link di invito: {link}' }
+};
+const P_STR = PT[pickLocale(navigator.languages || [navigator.language])] || PT['en-US'];
+let platformSettingsReady = false;
+// Preferences mirrored to the platform settings KV (the name is the account
+// nickname when signed in, so it stays local).
+function pushSettings() {
+  const P = window.CQCPlatform;
+  if (!P || !P.hosted || !platformSettingsReady) return;
+  const { name, ...prefs } = settings;
+  P.patchSettings(Object.assign(prefs, { audio: Audio.getVolumes() }));
+}
+
+// Key bindings: KeyboardEvent.code per action, platform overrides applied.
+const DEFAULT_KEYS = {
+  aimLeft: ['ArrowLeft'], aimRight: ['ArrowRight'],
+  powerUp: ['ArrowUp', 'Equal', 'NumpadAdd'], powerDown: ['ArrowDown', 'Minus', 'NumpadSubtract'],
+  shoot: ['Enter', 'Space'], hint: ['KeyH'], undo: ['KeyU'], pause: ['KeyP'], back: ['Escape'],
+};
+let bindings = DEFAULT_KEYS;
+let keyAction = {};
+function setBindings(b) {
+  bindings = b;
+  keyAction = {};
+  for (const [a, codes] of Object.entries(b)) for (const c of codes || []) keyAction[c] = a;
+}
+setBindings(DEFAULT_KEYS);
+const KEY_GLYPH = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓', Equal: '+', Minus: '−', NumpadAdd: 'Num +', NumpadSubtract: 'Num −', Escape: 'Esc' };
+const kbd = (action) => (bindings[action] || []).map((c) => `<kbd>${KEY_GLYPH[c] || c.replace(/^Key|^Digit/, '')}</kbd>`).join('/');
 
 function applySettingsClasses() {
   document.body.classList.toggle('high-contrast', settings.highContrast);
@@ -576,43 +618,41 @@ function bindGameInput() {
 
   // keyboard
   document.addEventListener('keydown', e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const action = keyAction[e.code];
     if (currentScreen === 'game' && !$('overlay-pause').hidden) {
-      if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') { e.preventDefault(); resumeGame(); }
+      if (action === 'back' || action === 'pause') { e.preventDefault(); resumeGame(); }
       return;
     }
     // results overlay is modal: let its buttons own the keyboard
     if (currentScreen === 'game' && !$('overlay-results').hidden) return;
     if (currentScreen !== 'game') {
-      if (e.key === 'Escape' && currentScreen !== 'home') { e.preventDefault(); goBack(); }
+      if (action === 'back' && currentScreen !== 'home') { e.preventDefault(); goBack(); }
       return;
     }
-    if (e.key === 'Escape' && document.body.classList.contains('rail-left-open')) {
+    if (action === 'back' && document.body.classList.contains('rail-left-open')) {
       e.preventDefault(); toggleRail(false); $('btn-rail').focus(); return;
     }
-    if (!sess) return;
+    if (!sess || !action) return;
     const ae = document.activeElement;
     const aeTag = ae && ae.tagName;
     // let focused buttons handle their own Enter/Space (avoid double commits)
-    if ((e.key === 'Enter' || e.key === ' ') && aeTag === 'BUTTON') return;
+    if ((e.code === 'Enter' || e.code === 'Space') && aeTag === 'BUTTON') return;
     // let native controls keep their keys
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(aeTag || '')) return;
-    let handled = true;
-    switch (e.key) {
-      case 'ArrowLeft': aimMilli = (aimMilli + (e.shiftKey ? 1 : 8)) % 6284; syncAim(); break;
-      case 'ArrowRight': aimMilli = (aimMilli - (e.shiftKey ? 1 : 8) + 6284) % 6284; syncAim(); break;
-      case 'ArrowUp': power = Math.min(1000, power + 25); syncPowerUI(); syncAim(); break;
-      case 'ArrowDown': power = Math.max(0, power - 25); syncPowerUI(); syncAim(); break;
-      case '+': case '=': power = Math.min(1000, power + 25); syncPowerUI(); syncAim(); break;
-      case '-': case '_': power = Math.max(0, power - 25); syncPowerUI(); syncAim(); break;
-      case 'Enter': case ' ':
+    switch (action) {
+      case 'aimLeft': aimMilli = (aimMilli + (e.shiftKey ? 1 : 8)) % 6284; syncAim(); break;
+      case 'aimRight': aimMilli = (aimMilli - (e.shiftKey ? 1 : 8) + 6284) % 6284; syncAim(); break;
+      case 'powerUp': power = Math.min(1000, power + 25); syncPowerUI(); syncAim(); break;
+      case 'powerDown': power = Math.max(0, power - 25); syncPowerUI(); syncAim(); break;
+      case 'shoot':
         if (sess.getState() && sess.getState().ballInHand) tryPlace(); else tryShoot();
         break;
-      case 'h': case 'H': sess.hint(); break;
-      case 'u': case 'U': sess.undo(); break;
-      case 'p': case 'P': case 'Escape': pauseGame(); break;
-      default: handled = false;
+      case 'hint': sess.hint(); break;
+      case 'undo': sess.undo(); break;
+      case 'pause': case 'back': pauseGame(); break;
     }
-    if (handled) e.preventDefault();
+    e.preventDefault();
   });
 
   $('power-slider').addEventListener('input', () => { power = Number($('power-slider').value); syncAim(); syncPowerUI(); });
@@ -797,10 +837,10 @@ function updateProgression(r) {
 function buildHelp() {
   const cards = [
     ['Controls', `<ul>
-      <li><kbd>←</kbd><kbd>→</kbd> fine aim (hold <kbd>Shift</kbd> for finer)</li>
-      <li><kbd>+</kbd>/<kbd>−</kbd> or <kbd>↑</kbd><kbd>↓</kbd> power</li>
-      <li><kbd>Enter</kbd>/<kbd>Space</kbd> shoot (or place, when ball in hand)</li>
-      <li><kbd>H</kbd> hint · <kbd>U</kbd> undo · <kbd>P</kbd>/<kbd>Esc</kbd> pause</li>
+      <li>${kbd('aimLeft')} ${kbd('aimRight')} fine aim (hold <kbd>Shift</kbd> for finer)</li>
+      <li>${kbd('powerUp')} / ${kbd('powerDown')} power</li>
+      <li>${kbd('shoot')} shoot (or place, when ball in hand)</li>
+      <li>${kbd('hint')} hint · ${kbd('undo')} undo · ${kbd('pause')}/${kbd('back')} pause</li>
       <li>Drag on the table to aim; tap a free spot to place the cue ball.</li>
       <li><kbd>Tab</kbd> reaches every control.</li></ul>`],
     ['Clearance', '<p>Pot every ball before your shots run out. Where the black is marked "last", potting it early loses the round.</p>'],
@@ -817,6 +857,17 @@ function buildHelp() {
     d.innerHTML = `<h3>${title}</h3>${body}`;
     host.appendChild(d);
   }
+}
+
+// Re-read the settings form from `settings` and the audio volumes (after the
+// platform values were applied).
+function syncSettingsForm() {
+  $('set-theme').value = settings.theme;
+  for (const [id, key] of [['set-contrast', 'highContrast'], ['set-motion', 'reducedMotion'], ['set-text', 'largerText'], ['set-lefthand', 'leftHanded']]) $(id).checked = settings[key];
+  const vols = Audio.getVolumes();
+  for (const bus of ['music', 'effects', 'ambience', 'voice']) $('vol-' + bus).value = Math.round(vols[bus] * 100);
+  $('set-mute').checked = vols.muted;
+  if (gfxPanel) gfxPanel.refresh();
 }
 
 function bindSettings() {
@@ -849,9 +900,10 @@ function bindSettings() {
     const el = $('vol-' + bus);
     el.value = Math.round(vols[bus] * 100);
     el.addEventListener('input', () => { Audio.unlock(); Audio.setVolume(bus, el.value / 100); });
+    el.addEventListener('change', pushSettings);
   }
   $('set-mute').checked = vols.muted;
-  $('set-mute').addEventListener('change', () => { Audio.setMuted($('set-mute').checked); });
+  $('set-mute').addEventListener('change', () => { Audio.setMuted($('set-mute').checked); pushSettings(); });
   $('set-tutorial').addEventListener('click', () => {
     const l = Content.LESSONS[0];
     openSetup(lessonConfig(l), { kind: 'learn', lesson: l });
@@ -932,12 +984,14 @@ function updateHomeProgress() {
 
 // ---------------------------------------------------------------- time -----
 function syncServerTime() {
-  // optional: adjust daily boundary against the authoritative clock
-  const t0 = Date.now();
-  fetch('/api/v1/time', { headers: window.CQCPlatform ? window.CQCPlatform.headers() : {} })
+  // Signed in only: adjust the daily boundary against the authoritative
+  // clock. Standalone makes no own-server requests and uses local UTC.
+  const P = window.CQCPlatform;
+  if (!P || !P.hosted) { serverOffsetMs = null; return; }
+  fetch('/api/v1/time', { headers: P.headers() })
     .then(r => r.json()).then(d => {
       if (typeof d.epochMs === 'number') serverOffsetMs = d.epochMs - Date.now();
-    }).catch(() => { /* offline: local UTC clock is fine */ });
+    }).catch(() => { /* unreachable: local UTC clock is fine */ });
 }
 
 // Account + cloud-sync status line on the home screen. Offline keeps the
@@ -946,46 +1000,93 @@ function renderAccountLine() {
   const el = document.getElementById('account-line');
   const P = window.CQCPlatform;
   if (!el || !P) return;
+  const canSign = P.canSignIn(), canInvite = P.hosted && !!P.inviteLink();
+  $('btn-signin').hidden = !canSign;
+  $('btn-invite').hidden = !canInvite;
+  $('platform-row').hidden = !canSign && !canInvite;
   if (!P.hosted) {
-    el.textContent = 'Offline — progress is stored on this device.';
+    el.textContent = P_STR.offline;
     return;
   }
   const name = P.profile ? P.profile.name : '…';
-  el.textContent = 'Playing as ' + name + ' · ' +
-    (P.sync === 'synced' ? 'progress synced'
-      : P.sync === 'saving' ? 'saving…'
-      : 'cloud sync pending');
+  el.textContent = P_STR.playing.replace('{name}', name) + ' · ' +
+    (P.sync === 'synced' ? P_STR.synced : P.sync === 'saving' ? P_STR.saving : P_STR.nosync);
+}
+
+function inviteFriend() {
+  const link = window.CQCPlatform.inviteLink();
+  if (!link) return;
+  const fail = () => toast(P_STR.copyFail.replace('{link}', link));
+  try { navigator.clipboard.writeText(link).then(() => toast(P_STR.copied), fail); } catch (e) { fail(); }
+}
+
+// Signed-in boot work: nickname, remote save (wins), settings KV, bindings.
+function syncFromPlatform() {
+  const P = window.CQCPlatform;
+  if (!P || !P.hosted) return;
+  P.fetchProfile().then(() => {
+    renderAccountLine();
+    // The account nickname replaces the editable local name when signed in
+    // (the input stays as the offline fallback).
+    if (P.profile) {
+      settings.name = P.profile.name;
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+      const nameInput = document.getElementById('profile-name');
+      if (nameInput) { nameInput.value = P.profile.name; nameInput.disabled = true; }
+    }
+  }).catch(() => {});
+  P.loadCloud().then((remoteJson) => {
+    const remote = remoteJson ? parseSave(remoteJson) : null;
+    if (remote) {
+      save = remote;
+      persistSave(); // local cache mirrors the remote doc
+      updateHomeProgress();
+    }
+    renderAccountLine();
+  }).catch(() => {});
+  platformSettingsReady = false;
+  P.getSettings().then((remote) => {
+    platformSettingsReady = true;
+    let changed = false;
+    for (const k of Object.keys(defaultSettings)) {
+      if (k === 'name' || remote == null || remote[k] == null || typeof remote[k] !== typeof defaultSettings[k]) continue;
+      settings[k] = remote[k]; changed = true;
+    }
+    const a = remote && remote.audio;
+    if (a && typeof a === 'object') {
+      for (const bus of ['music', 'effects', 'ambience', 'voice']) if (typeof a[bus] === 'number') Audio.setVolume(bus, a[bus]);
+      if (typeof a.muted === 'boolean') Audio.setMuted(a.muted);
+      changed = true;
+    }
+    if (changed) {
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) {}
+      applySettingsClasses();
+      syncSettingsForm();
+    }
+  }, () => { platformSettingsReady = true; });
+  P.loadBindings(DEFAULT_KEYS).then((b) => { setBindings(b); buildHelp(); }).catch(() => {});
 }
 
 // ---------------------------------------------------------------- init -----
 export function init() {
-  // Platform handshake: token read, remote save wins, account nickname.
+  // Platform handshake: StarHermit.init() reads the launch token; signed in,
+  // the remote save, platform settings and key bindings win.
   const P = window.CQCPlatform;
   if (P) {
     try { P.init(); } catch (e) { /* offline */ }
-    if (P.hosted) {
-      try { P.onSync(renderAccountLine); } catch (e) { /* ok */ }
-      P.fetchProfile().then(() => {
-        renderAccountLine();
-        // The account nickname replaces the editable local name when hosted
-        // (the input stays as the offline fallback).
-        if (P.profile) {
-          settings.name = P.profile.name;
-          saveSettings();
-          const nameInput = document.getElementById('profile-name');
-          if (nameInput) { nameInput.value = P.profile.name; nameInput.disabled = true; }
-        }
-      }).catch(() => {});
-      P.loadCloud().then((remoteJson) => {
-        const remote = remoteJson ? parseSave(remoteJson) : null;
-        if (remote) {
-          save = remote;
-          persistSave(); // local cache mirrors the remote doc
-          updateHomeProgress();
-        }
-        renderAccountLine();
-      }).catch(() => {});
-    }
+    P.onSync(renderAccountLine);
+    P.onAuth((signedIn) => {
+      const nameInput = document.getElementById('profile-name');
+      if (!signedIn && nameInput) nameInput.disabled = false;
+      renderAccountLine();
+      syncFromPlatform();
+      syncServerTime();
+    });
+    $('btn-signin').textContent = P_STR.signIn;
+    $('btn-invite').textContent = P_STR.invite;
+    $('btn-signin').addEventListener('click', () => P.signIn());
+    $('btn-invite').addEventListener('click', () => { Audio.unlock(); inviteFriend(); });
+    syncFromPlatform();
     renderAccountLine();
   }
   applySettingsClasses();

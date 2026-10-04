@@ -15,6 +15,7 @@
 <script src="js/content.js"></script>
 <script src="js/gfx.js"></script>
 <script src="js/audio.js"></script>
+<script src="starhermit-sdk.js"></script>
 <script src="js/platform.js"></script>
 <script src="js/session.js"></script>
 <script type="module" src="js/bootstrap.js"></script>
@@ -47,6 +48,10 @@
       <input id="profile-name" type="text" maxlength="24" autocomplete="off" value="Guest">
     </form>
     <p id="account-line" class="muted" aria-live="polite"></p>
+    <div id="platform-row" class="platform-row" hidden>
+      <button id="btn-signin" class="btn btn-ghost" hidden>Sign in with StarHermit</button>
+      <button id="btn-invite" class="btn btn-ghost" hidden>Invite a friend</button>
+    </div>
     <p id="home-progress" class="muted"></p>
   </section>
 
