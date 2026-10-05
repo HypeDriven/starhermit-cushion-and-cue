@@ -706,7 +706,8 @@ function createThree(host, opts) {
 
   function applySize() {
     const w = host.clientWidth || 640, h = host.clientHeight || 480;
-    const ratio = Math.min(window.devicePixelRatio || 1, q.cap) * q.scale * adaptiveScale;
+    // × UIScale: the canvas sits inside the zoomed #app, so its backing store must cover the zoom.
+    const ratio = Math.min(window.devicePixelRatio || 1, q.cap) * ((window.UIScale && UIScale.value) || 1) * q.scale * adaptiveScale;
     if (w !== size[0] || h !== size[1] || ratio !== pixelRatio) {
       size = [w, h];
       pixelRatio = ratio;
@@ -992,7 +993,7 @@ function create2D(host, opts) {
   function toScreen(x, y) { return { x: ox + (x - T.MIN_X) * scale, y: oy + (T.MAX_Y - y) * scale }; }
   function resize() {
     const w = host.clientWidth || 640, h = host.clientHeight || 480;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2) * ((window.UIScale && UIScale.value) || 1);
     canvas.width = w * dpr; canvas.height = h * dpr;
     canvas.style.width = '100%'; canvas.style.height = '100%';
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1105,7 +1106,9 @@ function create2D(host, opts) {
     setPlacementGhost(x, y) { placeG = x == null ? null : { x, y }; draw(); },
     tablePointFromScreen(cx, cy) {
       const rect = canvas.getBoundingClientRect();
-      return { x: T.MIN_X + (cx - rect.left - ox) / scale, y: T.MAX_Y - (cy - rect.top - oy) / scale };
+      // rect/client coords are visual (zoomed) px; ox/oy/scale are layout px
+      const z = rect.width / (canvas.clientWidth || rect.width) || 1;
+      return { x: T.MIN_X + ((cx - rect.left) / z - ox) / scale, y: T.MAX_Y - ((cy - rect.top) / z - oy) / scale };
     },
     burstAt() {},
     setTheme(t) { theme = t; draw(); },

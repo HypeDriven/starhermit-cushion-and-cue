@@ -67,12 +67,16 @@ body.high-contrast {
 }
 body.high-contrast .btn { border-width: 2px; }
 
+/* Large screens: the UI zooms by --ui-scale (ui-scale.js, exactly 1 up to a
+   1600x1000 viewport); vw/vh lengths inside zoomed elements are divided by it. */
+#app, #fps-meter { zoom: var(--ui-scale, 1); }
+
 /* ---------- screens ---------- */
 .screen {
   max-width: 860px;
   margin: 0 auto;
   padding: calc(24px + var(--sat)) calc(20px + var(--sar)) calc(24px + var(--sab)) calc(20px + var(--sal));
-  min-height: 100vh;
+  min-height: calc(100vh / var(--ui-scale, 1));
 }
 .screen h1 { font-size: 2.6rem; margin: 0.2em 0; letter-spacing: 0.02em; }
 /* Home hero: key art (assets/key-art.webp) behind the title; the panel colour
@@ -192,7 +196,7 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 
 /* ---------- game screen ---------- */
 [hidden] { display: none !important; }
-.screen-game { max-width: none; padding: var(--sat) var(--sar) var(--sab) var(--sal); display: flex; flex-direction: column; height: 100vh; }
+.screen-game { max-width: none; padding: var(--sat) var(--sar) var(--sab) var(--sal); display: flex; flex-direction: column; height: calc(100vh / var(--ui-scale, 1)); }
 .game-topbar {
   display: flex; gap: 18px; align-items: center; justify-content: space-between;
   padding: 8px calc(12px + var(--sar)) 8px calc(12px + var(--sal));
@@ -264,7 +268,7 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
   background: var(--panel); border: 1px solid #4a3f2e; border-radius: 14px;
   padding: 24px; width: min(480px, 100%);
   display: flex; flex-direction: column; gap: 8px;
-  max-height: 90vh; overflow-y: auto;
+  max-height: calc(90vh / var(--ui-scale, 1)); overflow-y: auto;
 }
 .res-art { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; border-radius: 10px; margin-bottom: 4px; }
 @media (max-height: 560px) { .res-art { display: none; } }
@@ -305,11 +309,11 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 
 /* portrait mobile: top status bar, square playfield, bottom thumb tray */
 @media (max-width: 700px) and (orientation: portrait) {
-  .screen-game { height: 100dvh; }
+  .screen-game { height: calc(100dvh / var(--ui-scale, 1)); }
   /* table sits directly above the thumb tray; the tray fills what is left */
   .game-layout { grid-template-rows: auto minmax(0, 1fr); }
   /* the table is a wide rectangle: a square host only added empty bands */
-  .canvas-host { aspect-ratio: 8 / 5; max-height: 58vh; margin: 0 auto; width: 100%; }
+  .canvas-host { aspect-ratio: 8 / 5; max-height: calc(58vh / var(--ui-scale, 1)); margin: 0 auto; width: 100%; }
 }
 
 /* landscape mobile: narrow status rail */
@@ -328,7 +332,7 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 @media (max-width: 1023px), (max-height: 500px) and (orientation: landscape) {
   .rail-toggle, .rail-close { display: inline-flex; }
   .rail-left {
-    position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: min(300px, 85vw);
+    position: fixed; z-index: 40; left: 0; top: 0; bottom: 0; width: min(300px, calc(85vw / var(--ui-scale, 1)));
     transform: translateX(-105%); transition: transform 0.18s ease-out, visibility 0.18s;
     padding-top: calc(12px + var(--sat));
     visibility: hidden;   /* closed drawer stays out of the tab order */

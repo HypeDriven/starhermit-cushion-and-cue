@@ -140,6 +140,7 @@ Input locking (`ui.js lockInput`, `session.js command`): while a shot replays, S
 - **< 1024 px:** the objective rail becomes a left drawer (`Objective` toggle, `aria-expanded`, Close button, hidden from the tab order when closed); the action rail wraps below the table.
 - **Portrait phone (≤ 700 px):** `100dvh` column; the table keeps an 8:5 aspect and at most 58 % of the height so the thumb tray with the full-width Shoot button stays on screen.
 - **Landscape phone (height ≤ 500 px):** table + 220 px action column, 40 px top bar; the objective rail is a drawer.
+- **Large screens (above 1600×1000):** `ui-scale.js` sets `--ui-scale` on `<html>` (1 up to a 1600×1000 viewport, then the smaller of width/1600 and height/1000, capped at 2.5; 2560×1440 → 1.44, 3840×2160 → 2.16). `#app` (every screen, the game grid, overlays, toasts) and the FPS meter are CSS-`zoom`ed by it with vw/vh lengths divided by it, so the whole layout grows proportionally; the table canvas (3D pixel ratio and the 2D fallback's backing store) multiplies by it to stay sharp, and the 2D fallback maps pointer coordinates back through the zoom.
 - Safe areas: all screen padding and the top bar/toast positions add `env(safe-area-inset-*)`. Left-handed mode mirrors the rails and the drawer side.
 - Must never be cut off: the whole table including all six pockets (the 3D camera pulls back until the cushion corners project inside ±0.94 NDC, `fitCamera`), the Shoot/Place button, the top-bar objective, the results card (scrollable, max 90 vh; the banner hides under 560 px height).
 
