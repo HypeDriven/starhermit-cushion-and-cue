@@ -170,6 +170,16 @@ function toast(msg, assertive) {
   $('toast-region').appendChild(t);
   setTimeout(() => t.remove(), 3200);
 }
+// Overlays (results, pause…) pad their bottom by the toast stack's height
+// (layout px; overlays and toasts share #app's zoom) so a toast never covers
+// the card's buttons.
+(function watchToasts() {
+  const root = document.getElementById('toast-region');
+  if (!root || typeof MutationObserver === 'undefined') return;
+  new MutationObserver(() => {
+    document.documentElement.style.setProperty('--toast-h', root.childElementCount ? `${root.offsetHeight + 12}px` : '0px');
+  }).observe(root, { childList: true });
+})();
 function starsText(n) { return '★'.repeat(n) + '☆'.repeat(3 - n); }
 function hexCss(c) { return '#' + c.toString(16).padStart(6, '0'); }
 
@@ -788,7 +798,9 @@ function showResults(r) {
   const jIdx = Content.JOURNEY.findIndex(j => j.id === r.cfgId);
   $('btn-next').hidden = !(jIdx >= 0 && jIdx + 1 < Content.JOURNEY.length);
   $('overlay-results').hidden = false;
-  $('btn-retry').focus();
+  // keep the headline in view on short screens: focus without scrolling the card
+  $('btn-retry').focus({ preventScroll: true });
+  $('overlay-results').querySelector('.overlay-card').scrollTop = 0;
 }
 
 function terminalReasonText(reason) {

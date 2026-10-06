@@ -141,7 +141,7 @@ async function platformPass(browser, pass, viewport, hasTouch) {
       await click('#btn-invite');
       await page.waitForSelector('#toast-region .toast', { timeout: 3000 });
       const box = await page.locator('#toast-region .toast').first().boundingBox();
-      if (!box || box.x < 0 || box.x + box.width > viewport.width + 1) throw new Error('toast off-screen ' + JSON.stringify(box));
+      if (!box || box.x < 0 || box.x + box.width > (page.viewportSize() || viewport).width + 1) throw new Error('toast off-screen ' + JSON.stringify(box));
       await page.screenshot({ path: SHOT('platform', pass) });
     });
     await step('help lists the platform key binding', async () => {
