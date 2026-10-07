@@ -288,6 +288,8 @@ input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent);
 .breakdown .total-row { font-weight: 700; font-size: 1.1rem; }
 .achievements { list-style: none; padding: 0; margin: 4px 0; }
 .achievements li { color: var(--accent); padding: 2px 0; }
+.achievements:empty { display: none; }
+#res-detail, #res-leaderboard { margin: 0; }
 
 /* ---------- toasts ---------- */
 #toast-region {
