@@ -146,6 +146,19 @@
     canSignIn: function () { var s = sdk(); return !!(s && s.canSignIn()); },
     signIn: function () { var s = sdk(); return !!(s && s.signIn()); },
     inviteLink: function () { var s = sdk(); return s && hosted ? s.inviteLink() : null; },
+    // Post a finished table to the leaderboard (score-script.js); resolves
+    // { posted, rank } — rank on the high-score board, or null.
+    submitScore: function (total) {
+      var s = sdk();
+      if (!s || !hosted) return Promise.resolve({ posted: false, rank: null });
+      return s.submitScores({ 'high-score': total }).then(function (keys) {
+        if (!keys || keys.indexOf('high-score') < 0) return { posted: false, rank: null };
+        return s.leaderboard('high-score', { pageSize: 100 }).then(function (r) {
+          var me = (r.items || []).filter(function (i) { return i.userId === s.userId; })[0];
+          return { posted: true, rank: me ? me.rank : null };
+        }, function () { return { posted: true, rank: null }; });
+      }, function () { return { posted: false, rank: null }; });
+    },
     onSync: function (fn) { if (typeof fn === 'function') syncListeners.push(fn); },
     onAuth: function (fn) { if (typeof fn === 'function') authListeners.push(fn); },
     get hosted() { return hosted; },

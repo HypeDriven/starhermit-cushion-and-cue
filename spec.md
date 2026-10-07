@@ -13,7 +13,7 @@ This document describes Cushion & Cue as it ships today: present tense, every st
 | Session length | 1–4 minutes per clearance table, 5–10 minutes per 8-ball match |
 | Platforms | Desktop and mobile browsers (portrait and landscape); keyboard, mouse, touch |
 | Rendering | Three.js top-down cue-hall scene (`vendor/three.module.min.js`) with an automatic 2D canvas fallback when WebGL is unavailable; all menus, HUD and controls are semantic HTML |
-| Backend | Optional: `server.js` is the StarHermit authoritative game script; the client itself is fully playable offline |
+| Backend | `score-script.js` is the StarHermit platform script (leaderboard posting only); `server.js` is the local dev server; the client itself is fully playable offline |
 
 **File map**
 
@@ -38,7 +38,8 @@ This document describes Cushion & Cue as it ships today: present tense, every st
 | `coverart.png`, `icon.png`, `favicon.svg` | Store cover (1200×675), 256 px icon, tab icon |
 | `tests/run-tests.js`, `tests/solver.js`, `tests/e2e.mjs` | Unit/rules/content/session/graphics-model tests, offline content solver, Playwright playthrough (incl. Graphics settings) |
 | `tools/validate.js` | Dev-only content validator (legality, reachability, bounded duration) |
-| `starhermit.txt`, `LICENSE.md` | Platform manifest (`server=server.js`), PolyForm Noncommercial 1.0.0 |
+| `score-script.js` | StarHermit platform script (`server=`): range-checks a finished table's total and posts it to the `high-score` board (canonical copy in the games repo's `tools/score-script.js`) |
+| `starhermit.txt`, `LICENSE.md` | Platform manifest (`server=score-script.js`), PolyForm Noncommercial 1.0.0 |
 
 ## 2. Vision and design pillars
 
@@ -209,8 +210,8 @@ Per the platform conventions (https://wiki.starhermit.com/):
 
 | Feature | Status |
 |---|---|
-| Packaging | `starhermit.txt` (`name=Cushion & Cue`, `launch=index.html`, `owner`, `server=server.js`, `version`, `contentVersion`, `cover`) plus one `control.<action>=<Code>[+<Code>] \| <Label>` line per keyboard action (`aimLeft`, `aimRight`, `powerUp`, `powerDown`, `shoot`, `hint`, `undo`, `pause`, `back`); `LICENSE.md` at root. `starhermit-sdk.js` is an unmodified copy of `tools/starhermit-sdk.js`, loaded before `js/platform.js`; all platform I/O goes through it |
-| Server script | `server.js` runs `rules.js` authoritatively: `POST /api/v1/session/start {config}`, `POST /api/v1/session/:id/command {commandId, command}` (idempotent by commandId, state hash per transition, 422 on invalid), `GET /api/v1/session/:id` (reconnect source of truth), `POST …/resign`; in-memory store capped at 500 sessions; 16 KB body limit; refuses paths outside the root and never serves `tests/`, `tools/`, `node_modules/` or dotfiles |
+| Packaging | `starhermit.txt` (`name=Cushion & Cue`, `launch=index.html`, `owner`, `server=score-script.js`, `version`, `contentVersion`, `cover`) plus one `control.<action>=<Code>[+<Code>] \| <Label>` line per keyboard action (`aimLeft`, `aimRight`, `powerUp`, `powerDown`, `shoot`, `hint`, `undo`, `pause`, `back`); `LICENSE.md` at root. `starhermit-sdk.js` is an unmodified copy of `tools/starhermit-sdk.js`, loaded before `js/platform.js`; all platform I/O goes through it |
+| Local server | `server.js` (local dev server, not deployed as the platform script) runs `rules.js` authoritatively: `POST /api/v1/session/start {config}`, `POST /api/v1/session/:id/command {commandId, command}` (idempotent by commandId, state hash per transition, 422 on invalid), `GET /api/v1/session/:id` (reconnect source of truth), `POST …/resign`; in-memory store capped at 500 sessions; 16 KB body limit; refuses paths outside the root and never serves `tests/`, `tools/`, `node_modules/` or dotfiles |
 | Platform time | **Signed in only:** the client fetches `GET /api/v1/time` (Bearer) at start and on sign-in and offsets the daily date by `epochMs − Date.now()`; falls back to the local UTC clock if unreachable. Standalone (no launch token) the game makes no own-server requests at all and uses the local UTC clock |
 | Launch token / sign-in | `js/platform.js` (`CQCPlatform`) is a thin adapter over `window.StarHermit`: `StarHermit.init()` reads `#game_token=` (library) or `#access_token=` (sign-in return), strips it, takes the slug from `game_scope` and renews the token before expiry; if renewal is refused the home line returns to offline, the name field unlocks and the sign-in button returns. On `*.starhermit.com` without a token the home screen shows "Sign in with StarHermit" (`StarHermit.signIn()`); hidden when signed in or running locally |
 | Identity | Signed in: the nickname from `StarHermit.profile()` (`Player <id>` fallback) replaces the editable local name (read-only then; it stays the offline fallback) and the home screen shows "Playing as <nickname> · sync status". Offline: local display name only (`profile-name`, saved in settings) |
@@ -219,7 +220,8 @@ Per the platform conventions (https://wiki.starhermit.com/):
 | Controls | Keydown is routed by `event.code` through `StarHermit.loadBindings(defaults)`; the Help "Controls" card shows the effective keys. No in-game rebinding UI |
 | Saves | Local `localStorage['cushion-and-cue-save-v1']`, versioned and FNV-checksummed (a corrupt document resets cleanly). Signed in, the save is mirrored with `StarHermit.saveJSON` (2 s debounce) to `/api/v1/me/cloud-saves/game:<slug>`, flushed with keepalive on `pagehide`/hidden; remote wins on boot (checksum-validated through the same `parseSave`) and the home line reflects sync status |
 | Achievements | Six stable lowercase keys unlocked idempotently in the local save; the game's server reports no platform achievements |
-| Leaderboards, sessions, matchmaking, session invites, chat, voice, realtime, replays | Not used: solo/hotseat game, and `server.js` is not a platform session script. The client never calls the own session API (the authoritative routes exist for the declared `server=server.js`); replay envelopes are built locally (`session.getReplay()`) but not transmitted. New platform strings (home line, sign-in, invite, toasts) are localized in the nine locales; without a token the game makes no StarHermit calls |
+| Leaderboard | Signed in: every finished table outside Learn and hotseat (Play, Journey, Daily, solo and AI Practice, Challenges) posts its total through `StarHermit.submitScores` (a practice session whose `score-script.js` posts it to the `high-score` board: integer, higher is better, −10,000–10,000) and the results overlay shows "Leaderboard rank: #N" (or posted / not posted). Standalone play posts nothing and shows no leaderboard line |
+| Sessions, matchmaking, session invites, chat, voice, realtime, replays | Not used: solo/hotseat game. The client never calls `server.js`'s own session API; replay envelopes are built locally (`session.getReplay()`) but not transmitted. New platform strings (home line, sign-in, invite, toasts, leaderboard line) are localized in the nine locales; without a token the game makes no StarHermit calls |
 
 ## 13. Technical architecture
 
@@ -267,7 +269,7 @@ QA bar (agents/qa.md) as checkable statements: the first stage's setup intro and
 ## 17. Design intent not yet implemented
 
 - Localization to en-US, en-GB, es-419, es-ES, de-DE, fr-FR, fr-CA, pt-BR, it-IT with a string table, `navigator.language` selection and a Settings override.
-- Daily leaderboard and achievement submission through the StarHermit API, with the replay envelope attached to each ranked score.
+- A per-day daily leaderboard and achievement submission through the StarHermit API, with the replay envelope attached to each ranked score.
 - Theme unlocks by star count, surfaced in Settings.
 - Hosted matches (invitations, reconnect) on top of the existing `server.js` session API.
 - Per-player score in hotseat and a behind-the-head-string placement rule after a break foul.

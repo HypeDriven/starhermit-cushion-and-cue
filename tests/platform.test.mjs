@@ -107,6 +107,7 @@ test('standalone: no token means no fetch at all', async () => {
   await P.flushSave(true);
   await P.patchSettings({ a: 1 });
   assert.deepEqual(J(await P.getSettings()), {});
+  assert.deepEqual(J(await P.submitScore(850)), { posted: false, rank: null });
   assert.deepEqual(J(await P.loadBindings({ hint: ['KeyH'] })), { hint: ['KeyH'] });
   await new Promise((r) => setTimeout(r, 50));
   assert.equal(calls.length, 0);
