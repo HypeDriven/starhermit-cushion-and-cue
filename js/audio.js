@@ -55,7 +55,7 @@
       var g = ctx.createGain();
       g.gain.value = volumes[name];
       g.connect(master);
-      buses[name] = g;
+      buses[name] = (globalThis.GameOptions ? globalThis.GameOptions.tagBus(g, name) : g);
     });
     return true;
   }
@@ -99,7 +99,7 @@
       return res.arrayBuffer();
     }).then(function (ab) { return ctx.decodeAudioData(ab); }).then(function (buf) {
       if (!ambienceNodes || ambienceNodes.authored) return;
-      var src = ctx.createBufferSource();
+      var src = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(ctx.createBufferSource(), null) : ctx.createBufferSource());
       src.buffer = buf; src.loop = true;
       var g = ctx.createGain();
       g.gain.value = 0.7;
@@ -136,7 +136,7 @@
     var state = sfxState[name];
     if (!state) { loadSfxClip(name); return false; }
     if (state === 'loading' || state === 'failed') return false;
-    var src = ctx.createBufferSource();
+    var src = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(ctx.createBufferSource(), event) : ctx.createBufferSource());
     src.buffer = state;
     src.connect(buses.effects);
     src.start();
@@ -151,7 +151,7 @@
     var buf = ctx.createBuffer(1, len, ctx.sampleRate);
     var data = buf.getChannelData(0);
     for (var i = 0; i < len; i++) data[i] = (avRng.next() * 2 - 1) * (1 - i / len);
-    var src = ctx.createBufferSource();
+    var src = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(ctx.createBufferSource(), bus) : ctx.createBufferSource());
     src.buffer = buf;
     var f = ctx.createBiquadFilter();
     f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
@@ -163,7 +163,7 @@
   }
 
   function tone(bus, type, f0, f1, dur, gain, when) {
-    var o = ctx.createOscillator();
+    var o = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(ctx.createOscillator(), bus) : ctx.createOscillator());
     o.type = type;
     o.frequency.setValueAtTime(f0, when);
     if (f1 !== f0) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), when + dur);
@@ -181,7 +181,7 @@
     var buf = ctx.createBuffer(1, len, ctx.sampleRate);
     var data = buf.getChannelData(0);
     for (var i = 0; i < len; i++) data[i] = avRng.next() * 2 - 1;
-    var src = ctx.createBufferSource();
+    var src = (globalThis.GameOptions ? globalThis.GameOptions.trackSource(ctx.createBufferSource(), null) : ctx.createBufferSource());
     src.buffer = buf; src.loop = true;
     var f = ctx.createBiquadFilter();
     f.type = 'lowpass'; f.frequency.value = 320; f.Q.value = 0.4;

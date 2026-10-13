@@ -788,9 +788,9 @@ function createThree(host, opts) {
     }
 
     if (composer) {
-      try { composer.render(dt); }
-      catch (e) { postFailed = true; postKey = null; applySize(); renderer.render(scene, camera); }
-    } else renderer.render(scene, camera);
+      try { (globalThis.GameOptions ? globalThis.GameOptions.draw(composer.renderer, () => composer.render(dt)) : composer.render(dt)); }
+      catch (e) { postFailed = true; postKey = null; applySize(); (globalThis.GameOptions ? globalThis.GameOptions.draw(renderer, () => renderer.render(scene, camera)) : renderer.render(scene, camera)); }
+    } else (globalThis.GameOptions ? globalThis.GameOptions.draw(renderer, () => renderer.render(scene, camera)) : renderer.render(scene, camera));
   }
   // ---- picking: screen → table coords via ground-plane raycast ----
   const raycaster = new THREE.Raycaster();

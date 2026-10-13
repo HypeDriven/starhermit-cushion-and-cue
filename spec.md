@@ -281,3 +281,8 @@ QA bar (agents/qa.md) as checkable statements: the first stage's setup intro and
 ## Directional consistency
 
 The 2D fallback and 3D table share the same orientation: positive table Y is toward the top of the screen. Left turns aim counter-clockwise, Right clockwise; Up/Down raise/lower shot power. Pointer aiming and placement use the inverse of the same screen mapping.
+
+
+## Sound and frame-rate options
+
+The options panel includes Sound controls for master, music, effects and UI volume, a mute that preserves volume levels, and an Auto or manual concurrent-sound limit (1–64). Changes apply immediately with perceptual volume curves. A shared allocator bounds Web Audio and media playback, including loops and scheduled sources. Graphics includes Auto display refresh or a custom maximum frame rate from 1–1000 FPS; rendering is paced independently of simulation and input. Preferences persist locally, with FPS stored per detected GPU, and reconcile with Starhermit settings when signed in. The controls support keyboard and touch input and the supported English, Spanish, German, French, Portuguese and Italian locales.
