@@ -4,7 +4,7 @@
  * through CCSession/CCRules.
  */
 import * as Render from './render.js';
-import { mountGraphicsPanel, probeGpu, pickLocale } from './gfx-ui.js';
+import { mountGraphicsPanel, probeGpu } from './gfx-ui.js';
 
 const Rules = window.CCRules;
 const Content = window.CCContent;
@@ -48,19 +48,11 @@ function saveSettings() {
 }
 
 // ---------------------------------------------------------------- platform -
-// StarHermit strings (account line, sign-in, invite, toasts, leaderboard line) in nine locales.
-const PT = {
-  'en-US': { offline: 'Offline — progress is stored on this device.', playing: 'Playing as {name}', synced: 'progress synced', saving: 'saving…', nosync: 'cloud sync unavailable', signIn: 'Sign in with StarHermit', invite: 'Invite a friend', copied: 'Invite link copied to the clipboard.', copyFail: 'Could not copy — invite link: {link}', lbPosting: 'Posting score to the leaderboard…', lbRank: 'Leaderboard rank: #{rank}', lbPosted: 'Score posted to the leaderboard.', lbNotPosted: 'Score not posted to the leaderboard.' },
-  'en-GB': { offline: 'Offline — progress is stored on this device.', playing: 'Playing as {name}', synced: 'progress synced', saving: 'saving…', nosync: 'cloud sync unavailable', signIn: 'Sign in with StarHermit', invite: 'Invite a friend', copied: 'Invite link copied to the clipboard.', copyFail: 'Could not copy — invite link: {link}', lbPosting: 'Posting score to the leaderboard…', lbRank: 'Leaderboard rank: #{rank}', lbPosted: 'Score posted to the leaderboard.', lbNotPosted: 'Score not posted to the leaderboard.' },
-  'es-419': { offline: 'Sin conexión: el progreso se guarda en este dispositivo.', playing: 'Jugando como {name}', synced: 'progreso sincronizado', saving: 'guardando…', nosync: 'sincronización en la nube no disponible', signIn: 'Iniciar sesión con StarHermit', invite: 'Invitar a un amigo', copied: 'Enlace de invitación copiado al portapapeles.', copyFail: 'No se pudo copiar. Enlace de invitación: {link}', lbPosting: 'Publicando la puntuación en la clasificación…', lbRank: 'Puesto en la clasificación: #{rank}', lbPosted: 'Puntuación publicada en la clasificación.', lbNotPosted: 'No se pudo publicar la puntuación en la clasificación.' },
-  'es-ES': { offline: 'Sin conexión: el progreso se guarda en este dispositivo.', playing: 'Jugando como {name}', synced: 'progreso sincronizado', saving: 'guardando…', nosync: 'sincronización en la nube no disponible', signIn: 'Iniciar sesión con StarHermit', invite: 'Invitar a un amigo', copied: 'Enlace de invitación copiado al portapapeles.', copyFail: 'No se ha podido copiar. Enlace de invitación: {link}', lbPosting: 'Publicando la puntuación en la clasificación…', lbRank: 'Puesto en la clasificación: #{rank}', lbPosted: 'Puntuación publicada en la clasificación.', lbNotPosted: 'No se ha podido publicar la puntuación en la clasificación.' },
-  'de-DE': { offline: 'Offline – der Fortschritt wird auf diesem Gerät gespeichert.', playing: 'Du spielst als {name}', synced: 'Fortschritt synchronisiert', saving: 'wird gespeichert…', nosync: 'Cloud-Synchronisierung nicht verfügbar', signIn: 'Mit StarHermit anmelden', invite: 'Freund einladen', copied: 'Einladungslink in die Zwischenablage kopiert.', copyFail: 'Kopieren fehlgeschlagen – Einladungslink: {link}', lbPosting: 'Punktzahl wird in die Bestenliste eingetragen…', lbRank: 'Platz in der Bestenliste: #{rank}', lbPosted: 'Punktzahl in die Bestenliste eingetragen.', lbNotPosted: 'Punktzahl wurde nicht in die Bestenliste eingetragen.' },
-  'fr-FR': { offline: 'Hors ligne : la progression est enregistrée sur cet appareil.', playing: 'Vous jouez en tant que {name}', synced: 'progression synchronisée', saving: 'enregistrement…', nosync: 'synchronisation cloud indisponible', signIn: 'Se connecter avec StarHermit', invite: 'Inviter un ami', copied: 'Lien d’invitation copié dans le presse-papiers.', copyFail: 'Copie impossible — lien d’invitation : {link}', lbPosting: 'Envoi du score au classement…', lbRank: 'Rang au classement : #{rank}', lbPosted: 'Score envoyé au classement.', lbNotPosted: 'Score non envoyé au classement.' },
-  'fr-CA': { offline: 'Hors ligne : la progression est enregistrée sur cet appareil.', playing: 'Vous jouez en tant que {name}', synced: 'progression synchronisée', saving: 'enregistrement…', nosync: 'synchronisation infonuagique non disponible', signIn: 'Se connecter avec StarHermit', invite: 'Inviter un ami', copied: 'Lien d’invitation copié dans le presse-papiers.', copyFail: 'Copie impossible — lien d’invitation : {link}', lbPosting: 'Envoi du pointage au classement…', lbRank: 'Rang au classement : #{rank}', lbPosted: 'Pointage envoyé au classement.', lbNotPosted: 'Pointage non envoyé au classement.' },
-  'pt-BR': { offline: 'Offline — o progresso fica salvo neste dispositivo.', playing: 'Jogando como {name}', synced: 'progresso sincronizado', saving: 'salvando…', nosync: 'sincronização na nuvem indisponível', signIn: 'Entrar com StarHermit', invite: 'Convidar um amigo', copied: 'Link de convite copiado para a área de transferência.', copyFail: 'Não foi possível copiar — link de convite: {link}', lbPosting: 'Enviando pontuação para o placar…', lbRank: 'Posição no placar: #{rank}', lbPosted: 'Pontuação enviada para o placar.', lbNotPosted: 'A pontuação não foi enviada para o placar.' },
-  'it-IT': { offline: 'Offline: i progressi sono salvati su questo dispositivo.', playing: 'Giochi come {name}', synced: 'progressi sincronizzati', saving: 'salvataggio…', nosync: 'sincronizzazione cloud non disponibile', signIn: 'Accedi con StarHermit', invite: 'Invita un amico', copied: 'Link di invito copiato negli appunti.', copyFail: 'Impossibile copiare. Link di invito: {link}', lbPosting: 'Invio del punteggio alla classifica…', lbRank: 'Posizione in classifica: #{rank}', lbPosted: 'Punteggio inviato alla classifica.', lbNotPosted: 'Punteggio non inviato alla classifica.' }
-};
-const P_STR = PT[pickLocale(navigator.languages || [navigator.language])] || PT['en-US'];
+// Every player-facing string follows the game language (js/i18n.js, keyed by
+// the US-English text).
+const T = (key, vars) => (window.CQCI18n ? window.CQCI18n.T(key, vars) : String(key).replace(/\{(\w+)\}/g, (m, k) => (vars && vars[k] != null ? vars[k] : m)));
+const N = (key) => key;
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 let platformSettingsReady = false;
 // Preferences mirrored to the platform settings KV (the name is the account
 // nickname when signed in, so it stays local).
@@ -212,9 +204,9 @@ function ensureRenderer() {
     highContrast: settings.highContrast,
     reducedMotion: settings.reducedMotion,
     decorSeed: 7,
-    onFallback() { toast('3D unavailable — using 2D table view.'); },
+    onFallback() { toast(T('3D unavailable — using 2D table view.')); },
     onContextLost() {
-      toast('Graphics context lost. The table view may freeze; the game state is safe. Reload to restore 3D.', true);
+      toast(T('Graphics context lost. The table view may freeze; the game state is safe. Reload to restore 3D.'), true);
     }
   });
   window.addEventListener('resize', () => renderer.resize());
@@ -236,11 +228,11 @@ function buildLists() {
     const unlocked = journeyUnlocked(i);
     b.disabled = !unlocked;
     b.innerHTML =
-      `<span class="card-name">${i + 1}. ${j.name}</span>` +
-      `<span class="card-sub">${j.ruleset === 'eightball' ? '8-ball match' :
-        j.ballNumbers.length + ' balls · ' + j.shotLimit + ' shots'}${j.mastery ? ' · Mastery' : ''}</span>` +
-      (unlocked ? `<span class="card-stars" aria-label="${stars} of 3 stars">${starsText(stars)}</span>`
-                : '<span class="card-lock" aria-label="Locked">🔒</span>');
+      `<span class="card-name">${i + 1}. ${esc(T(j.name))}</span>` +
+      `<span class="card-sub">${esc(j.ruleset === 'eightball' ? T('8-ball match') :
+        T('{balls} balls · {shots} shots', { balls: j.ballNumbers.length, shots: j.shotLimit }))}${j.mastery ? ' · ' + esc(T('Mastery')) : ''}</span>` +
+      (unlocked ? `<span class="card-stars" aria-label="${esc(T('{n} of 3 stars', { n: stars }))}">${starsText(stars)}</span>`
+                : `<span class="card-lock" aria-label="${esc(T('Locked'))}">🔒</span>`);
     b.addEventListener('click', () => openSetup(j, { kind: 'journey' }));
     li.appendChild(b); jl.appendChild(li);
   });
@@ -252,9 +244,9 @@ function buildLists() {
     const b = document.createElement('button');
     b.className = 'card-btn';
     const done = !!save.lessonsDone[l.id];
-    b.innerHTML = `<span class="card-name">${l.title}</span>` +
-      `<span class="card-sub">${l.steps.length} steps</span>` +
-      (done ? '<span class="card-stars" aria-label="Completed">✓</span>' : '');
+    b.innerHTML = `<span class="card-name">${esc(T(l.title))}</span>` +
+      `<span class="card-sub">${esc(T('{n} steps', { n: l.steps.length }))}</span>` +
+      (done ? `<span class="card-stars" aria-label="${esc(T('Completed'))}">✓</span>` : '');
     b.addEventListener('click', () => openSetup(lessonConfig(l), { kind: 'learn', lesson: l }));
     li.appendChild(b); ll.appendChild(li);
   });
@@ -265,8 +257,8 @@ function buildLists() {
     const li = document.createElement('li');
     const b = document.createElement('button');
     b.className = 'card-btn';
-    b.innerHTML = `<span class="card-name">${p.name}</span>` +
-      `<span class="card-sub">${p.ruleset === 'eightball' ? '8-ball' : p.nBalls + ' balls · ' + p.shotLimit + ' shots'}</span>`;
+    b.innerHTML = `<span class="card-name">${esc(T(p.name))}</span>` +
+      `<span class="card-sub">${esc(p.ruleset === 'eightball' ? T('8-ball') : T('{balls} balls · {shots} shots', { balls: p.nBalls, shots: p.shotLimit }))}</span>`;
     b.addEventListener('click', () => {
       const seed = (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
       openSetup(Content.practiceConfig(p.id, seed), { kind: 'practice' });
@@ -281,8 +273,8 @@ function buildLists() {
     const b = document.createElement('button');
     b.className = 'card-btn';
     const stars = save.journeyStars['ch:' + c.id] || 0;
-    b.innerHTML = `<span class="card-name">${c.name}</span><span class="card-sub">${c.blurb}</span>` +
-      `<span class="card-stars" aria-label="${stars} of 3 stars">${starsText(stars)}</span>`;
+    b.innerHTML = `<span class="card-name">${esc(T(c.name))}</span><span class="card-sub">${esc(T(c.blurb))}</span>` +
+      `<span class="card-stars" aria-label="${esc(T('{n} of 3 stars', { n: stars }))}">${starsText(stars)}</span>`;
     b.addEventListener('click', () => openSetup(c, { kind: 'challenge' }));
     li.appendChild(b); cl.appendChild(li);
   });
@@ -302,22 +294,30 @@ function lessonConfig(lesson) {
 function openSetup(cfg, opts) {
   pendingConfig = cfg;
   pendingOpts = opts || {};
-  $('setup-title').textContent = cfg.name || 'Set up';
+  renderSetup();
+  showScreen('setup');
+}
+
+// Setup screen text for pendingConfig (re-rendered on a language change).
+function renderSetup() {
+  const cfg = pendingConfig;
+  if (!cfg) return;
+  $('setup-title').textContent = cfg.date ? T('Daily — {date}', { date: cfg.date }) : cfg.name ? T(cfg.name) : T('Set up');
   $('setup-rules').textContent = cfg.ruleset === 'eightball'
-    ? '8-ball: pot your group, then the 8. Fouls give ball in hand.'
-    : 'Clearance: pot every ball' + (cfg.blackLast ? ' (black last)' : '') +
-      (cfg.shotLimit ? ' within ' + cfg.shotLimit + ' shots.' : '.');
-  $('setup-duration').textContent = cfg.ruleset === 'eightball' ? '5–10 minutes'
-    : (cfg.shotLimit || 8) <= 6 ? '1–2 minutes' : '2–4 minutes';
+    ? T('8-ball: pot your group, then the 8. Fouls give ball in hand.')
+    : cfg.shotLimit
+      ? T(cfg.blackLast ? 'Clearance: pot every ball (black last) within {n} shots.' : 'Clearance: pot every ball within {n} shots.', { n: cfg.shotLimit })
+      : T(cfg.blackLast ? 'Clearance: pot every ball (black last).' : 'Clearance: pot every ball.');
+  $('setup-duration').textContent = cfg.ruleset === 'eightball' ? T('5–10 minutes')
+    : (cfg.shotLimit || 8) <= 6 ? T('1–2 minutes') : T('2–4 minutes');
   $('setup-players').textContent = cfg.ruleset === 'eightball'
-    ? (cfg.players && cfg.players.some(p => p.ai) ? 'You vs ' + cfg.players.find(p => p.ai).name : '2 players (hotseat)')
-    : 'Solo';
-  $('setup-ranked').textContent = cfg.kind === 'daily' ? 'Yes (daily ranking)' : 'No';
+    ? (cfg.players && cfg.players.some(p => p.ai) ? T('You vs {name}', { name: T(cfg.players.find(p => p.ai).name) }) : T('2 players (hotseat)'))
+    : T('Solo');
+  $('setup-ranked').textContent = cfg.kind === 'daily' ? T('Yes (daily ranking)') : T('No');
   const mech = Object.assign({ undo: true, hint: true }, cfg.mechanics || {});
   $('setup-assists').textContent =
-    (mech.hint ? 'Hints' : 'No hints') + ' · ' + (mech.undo && cfg.kind !== 'daily' ? 'Undo' : 'No undo');
-  $('setup-intro').textContent = cfg.intro || cfg.blurb || '';
-  showScreen('setup');
+    (mech.hint ? T('Hints') : T('No hints')) + ' · ' + (mech.undo && cfg.kind !== 'daily' ? T('Undo') : T('No undo'));
+  $('setup-intro').textContent = cfg.intro ? T(cfg.intro) : cfg.blurb ? T(cfg.blurb) : '';
 }
 
 // ---------------------------------------------------------------- game -----
@@ -349,7 +349,7 @@ function startGame(cfg, opts) {
   const state = sess.getState();
   renderer.setSnapshot(state);
   refreshHUD();
-  announce('Game started. ' + objectiveText(state));
+  announce(T('Game started.') + ' ' + objectiveText(state));
 }
 
 function quitToHome() {
@@ -367,11 +367,11 @@ function wireSession(s) {
   s.on('applied', d => {
     updateMirror();
     for (const e of d.events) {
-      if (e.type === 'foul') { Audio.foul(); toast('Foul: ' + foulText(e.foul), true); }
+      if (e.type === 'foul') { Audio.foul(); toast(T('Foul: {reason}', { reason: foulText(e.foul) }), true); }
       if (e.type === 'groups') {
         Audio.groupsSet();
         const st = s.getState();
-        toast('Groups set: you are ' + (st.players[0].group || 'open') + '.');
+        toast(T('Groups set: you are {group}.', { group: groupName(st.players[0].group) }));
       }
     }
     if (d.trace) {
@@ -400,23 +400,23 @@ function wireSession(s) {
       if (!s.getState().terminal) Audio.turnChime();
     }
   });
-  s.on('invalid', d => toast('Not legal: ' + invalidText(d.invalid), true));
-  s.on('ai-thinking', () => { $('hud-player').textContent = 'House is aiming…'; announce('House is aiming.'); });
-  s.on('undone', () => { renderer.setSnapshot(s.getState()); refreshHUD(); toast('Shot undone.'); Audio.undo(); });
+  s.on('invalid', d => toast(T('Not legal: {reason}', { reason: invalidText(d.invalid) }), true));
+  s.on('ai-thinking', () => { aiAiming = true; $('hud-player').textContent = T('House is aiming…'); announce(T('House is aiming.')); });
+  s.on('undone', () => { renderer.setSnapshot(s.getState()); refreshHUD(); toast(T('Shot undone.')); Audio.undo(); });
   s.on('hint', h => {
     Audio.cueBeep();
-    if (h.shot) { aimMilli = h.shot.angle; syncAim(); toast('Hint: aim guide set to the suggested shot.'); }
+    if (h.shot) { aimMilli = h.shot.angle; syncAim(); toast(T('Hint: aim guide set to the suggested shot.')); }
     else if (h.place) {
       placePoint = { x: h.place.x / 1000, y: h.place.y / 1000 };
       renderer.setPlacementGhost(placePoint.x, placePoint.y);
       $('btn-place').hidden = false;
-      toast('Hint: suggested cue ball position marked.');
+      toast(T('Hint: suggested cue ball position marked.'));
     }
   });
   s.on('lesson', d => {
-    const banner = $('lesson-banner');
-    if (d.done) { banner.textContent = 'Lesson complete! ' + (d.outro || ''); announce('Lesson complete.'); }
-    else { banner.textContent = 'Step ' + (d.step + 1) + '/' + d.total + ': ' + d.text; announce(banner.textContent); }
+    lessonEvent = d;
+    renderLessonBanner();
+    announce(d.done ? T('Lesson complete.') : $('lesson-banner').textContent);
   });
   s.on('results', r => showResults(r));
 }
@@ -430,23 +430,39 @@ function lockInput(locked) {
   refreshHUD();
 }
 
+// Lesson step banner (re-rendered on a language change).
+let lessonEvent = null;
+let aiAiming = false;
+function renderLessonBanner() {
+  const banner = $('lesson-banner');
+  const d = lessonEvent;
+  if (!d) return;
+  banner.textContent = d.done
+    ? T('Lesson complete!') + (d.outro ? ' ' + T(d.outro) : '')
+    : T('Step {n}/{total}: {text}', { n: d.step + 1, total: d.total, text: T(d.text) });
+}
+
+function groupName(g) {
+  return g === 'solid' || g === 'solids' ? T('solids') : g === 'stripe' || g === 'stripes' ? T('stripes') : g ? T(g) : T('open');
+}
+
 // ---------------------------------------------------------------- HUD ------
 function objectiveText(state) {
   if (!state) return '';
   if (state.terminal) {
     return state.terminal.reason === Rules.TERMINAL.CLEAR || state.terminal.reason === Rules.TERMINAL.EIGHT_DONE
-      ? 'Table finished.' : terminalReasonText(state.terminal.reason);
+      ? T('Table finished.') : terminalReasonText(state.terminal.reason);
   }
   if (state.ruleset === 'eightball') {
     const me = state.players[0];
-    if (state.openTable || !me.group) return 'Pot any ball except the 8 to claim a group.';
-    if (Rules.pottedCount(state, me.group) === 7) return 'Your group is clear — pot the 8 to win.';
-    return 'Pot your ' + me.group + 's, then the 8.';
+    if (state.openTable || !me.group) return T('Pot any ball except the 8 to claim a group.');
+    if (Rules.pottedCount(state, me.group) === 7) return T('Your group is clear — pot the 8 to win.');
+    return T('Pot your {group}, then the 8.', { group: groupName(me.group) });
   }
   const left = Rules.remainingTargets(state);
-  if (state.blackLast && left === 1) return 'Pot the black to finish.';
-  return 'Pot the remaining ' + left + ' ball' + (left === 1 ? '' : 's') +
-    (state.blackLast ? ' — the black goes last.' : '.');
+  if (state.blackLast && left === 1) return T('Pot the black to finish.');
+  if (left === 1) return T('Pot the remaining ball.');
+  return T(state.blackLast ? 'Pot the remaining {n} balls — the black goes last.' : 'Pot the remaining {n} balls.', { n: left });
 }
 
 function refreshHUD() {
@@ -454,16 +470,19 @@ function refreshHUD() {
   const state = sess.getState();
   if (!state) return;
   $('hud-objective').textContent = objectiveText(state);
-  $('hud-player').textContent = state.terminal ? 'Finished'
-    : 'Turn: ' + state.players[state.current].name;
-  $('hud-score').textContent = 'Score ' + state.score.total +
-    (state.ruleset === 'clearance' ? ' · Shots left ' + state.shotsLeft
-     : ' · Shots ' + state.shotCount);
+  if (!(aiAiming && sess.isAITurn())) {
+    aiAiming = false;
+    $('hud-player').textContent = state.terminal ? T('Finished')
+      : T('Turn: {name}', { name: T(state.players[state.current].name) });
+  } else $('hud-player').textContent = T('House is aiming…');
+  $('hud-score').textContent = T('Score {n}', { n: state.score.total }) + ' · ' +
+    (state.ruleset === 'clearance' ? T('Shots left {n}', { n: state.shotsLeft })
+     : T('Shots {n}', { n: state.shotCount }));
   $('rail-objective-text').textContent = objectiveText(state);
   $('rail-shots').textContent = state.ruleset === 'clearance'
-    ? 'Shots left: ' + state.shotsLeft + ' · Taken: ' + state.shotCount
-    : 'Turn ' + (state.turn + 1) + ' · Shots: ' + state.shotCount;
-  $('rail-timer').textContent = 'Table time: ' + Math.round(state.tick / 240) + 's (simulated)';
+    ? T('Shots left: {left} · Taken: {taken}', { left: state.shotsLeft, taken: state.shotCount })
+    : T('Turn {n} · Shots: {shots}', { n: state.turn + 1, shots: state.shotCount });
+  $('rail-timer').textContent = T('Table time: {n}s (simulated)', { n: Math.round(state.tick / 240) });
 
   const targets = Rules.legalTargets(state);
   const ul = $('rail-targets');
@@ -477,7 +496,7 @@ function refreshHUD() {
     if (b.n === 8) li.style.color = '#f0e8d8';
     if (b.potted) li.className = 'done';
     else if (targets.indexOf(b.n) >= 0) li.style.borderColor = '#ffd970';
-    li.setAttribute('aria-label', 'Ball ' + b.n + (b.potted ? ', potted' : targets.indexOf(b.n) >= 0 ? ', legal target' : ', not a legal target'));
+    li.setAttribute('aria-label', T(b.potted ? 'Ball {n}, potted' : targets.indexOf(b.n) >= 0 ? 'Ball {n}, legal target' : 'Ball {n}, not a legal target', { n: b.n }));
     ul.appendChild(li);
   }
   renderer.setLegalTargets(targets);
@@ -498,35 +517,35 @@ function refreshHUD() {
 function updateMirror() {
   if (!sess) return;
   const state = sess.getState();
-  if (!state) { $('sr-table-text').textContent = 'No game in progress.'; return; }
+  if (!state) { $('sr-table-text').textContent = T('No game in progress.'); return; }
   const parts = [];
   parts.push(objectiveText(state));
-  parts.push('Turn: ' + state.players[state.current].name + '. Score ' + state.score.total + '.');
-  if (state.ruleset === 'clearance') parts.push(state.shotsLeft + ' shots left.');
-  if (state.ballInHand) parts.push('Ball in hand: place the cue ball anywhere free.');
+  parts.push(T('Turn: {name}. Score {n}.', { name: T(state.players[state.current].name), n: state.score.total }));
+  if (state.ruleset === 'clearance') parts.push(T('{n} shots left.', { n: state.shotsLeft }));
+  if (state.ballInHand) parts.push(T('Ball in hand: place the cue ball anywhere free.'));
   const live = state.balls.filter(b => !b.potted);
-  parts.push('Balls on table: ' + live.map(b => {
-    const zoneX = b.x < -0.37 ? 'left' : b.x > 0.37 ? 'right' : 'center';
-    const zoneY = b.y < -0.19 ? 'bottom' : b.y > 0.19 ? 'top' : 'middle';
-    return (b.n === 0 ? 'cue' : String(b.n)) + ' (' + zoneY + '-' + zoneX + ')';
-  }).join(', ') + '.');
+  parts.push(T('Balls on table: {list}.', { list: live.map(b => {
+    const zoneX = b.x < -0.37 ? N('left') : b.x > 0.37 ? N('right') : N('center');
+    const zoneY = b.y < -0.19 ? N('bottom') : b.y > 0.19 ? N('top') : N('middle');
+    return (b.n === 0 ? T('cue') : String(b.n)) + ' (' + T(zoneY) + '-' + T(zoneX) + ')';
+  }).join(', ') }));
   const t = Rules.legalTargets(state);
-  if (t.length) parts.push('Legal targets: ' + t.join(', ') + '.');
+  if (t.length) parts.push(T('Legal targets: {list}.', { list: t.join(', ') }));
   $('sr-table-text').textContent = parts.join(' ');
 }
 
 function foulText(f) {
-  return { 'no-contact': 'cue ball hit nothing', 'wrong-first-contact': 'wrong ball first',
-    'no-rail-after-contact': 'no cushion after contact', 'cue-ball-potted': 'cue ball potted (scratch)' }[f] || f;
+  return T({ 'no-contact': N('cue ball hit nothing'), 'wrong-first-contact': N('wrong ball first'),
+    'no-rail-after-contact': N('no cushion after contact'), 'cue-ball-potted': N('cue ball potted (scratch)') }[f] || f);
 }
 function invalidText(i) {
-  return { 'game-ended': 'the game is over', 'unknown-command': 'unknown command',
-    'malformed-command': 'malformed command', 'bad-angle': 'bad angle', 'bad-power': 'bad power',
-    'bad-spin': 'bad spin', 'not-ball-in-hand': 'no ball in hand right now',
-    'must-place-cue-first': 'place the cue ball first', 'place-blocked': 'that spot is blocked',
-    'out-of-bounds': 'outside the table', 'resolving': 'shot still resolving',
-    'not-your-turn': 'wait for the house', 'duplicate-action': 'already committed',
-    'paused': 'game is paused' }[i] || i;
+  return T({ 'game-ended': N('the game is over'), 'unknown-command': N('unknown command'),
+    'malformed-command': N('malformed command'), 'bad-angle': N('bad angle'), 'bad-power': N('bad power'),
+    'bad-spin': N('bad spin'), 'not-ball-in-hand': N('no ball in hand right now'),
+    'must-place-cue-first': N('place the cue ball first'), 'place-blocked': N('that spot is blocked'),
+    'out-of-bounds': N('outside the table'), 'resolving': N('shot still resolving'),
+    'not-your-turn': N('wait for the house'), 'duplicate-action': N('already committed'),
+    'paused': N('game is paused') }[i] || i);
 }
 
 // ---------------------------------------------------------------- input ----
@@ -535,7 +554,7 @@ function syncAim() {
   const state = sess.getState();
   if (state && !state.ballInHand && !state.terminal) renderer.setAim(state, aimMilli);
   else renderer.setAim(null, null);
-  $('aim-readout').textContent = 'Aim: ' + (aimMilli / 1000).toFixed(2) + ' rad · Power ' + Math.round(power / 10) + '%';
+  $('aim-readout').textContent = T('Aim: {aim} rad · Power {power}%', { aim: (aimMilli / 1000).toFixed(2), power: Math.round(power / 10) });
 }
 function syncPowerUI() {
   $('power-slider').value = power;
@@ -547,9 +566,9 @@ function syncSpinUI() {
   marker.style.left = (50 + spinSide / 2) + '%';
   marker.style.top = (50 - spinTop / 2) + '%';
   pad.setAttribute('aria-valuenow', String(spinSide));
-  const txt = (spinTop === 0 && spinSide === 0) ? 'No spin'
-    : [spinTop ? (spinTop > 0 ? 'follow ' + spinTop : 'draw ' + (-spinTop)) : '',
-       spinSide ? (spinSide > 0 ? 'right ' + spinSide : 'left ' + (-spinSide)) : '']
+  const txt = (spinTop === 0 && spinSide === 0) ? T('No spin')
+    : [spinTop ? (spinTop > 0 ? T('follow {n}', { n: spinTop }) : T('draw {n}', { n: -spinTop })) : '',
+       spinSide ? (spinSide > 0 ? T('right {n}', { n: spinSide }) : T('left {n}', { n: -spinSide })) : '']
       .filter(Boolean).join(', ');
   pad.setAttribute('aria-valuetext', txt);
   $('spin-value').textContent = txt;
@@ -559,7 +578,7 @@ function tryShoot() {
   if (!sess) return;
   Audio.unlock(); Audio.uiClick();
   const res = sess.command({ type: 'shoot', angle: aimMilli, power: Math.round(power), spinTop, spinSide }, 'shot-' + (++actionSeq));
-  if (res && res.ok) announce('Shot taken.');
+  if (res && res.ok) announce(T('Shot taken.'));
 }
 
 function tryPlace() {
@@ -571,7 +590,7 @@ function tryPlace() {
     Audio.placeBall();
     placePoint = null;
     renderer.setPlacementGhost(null);
-    announce('Cue ball placed.');
+    announce(T('Cue ball placed.'));
   }
 }
 
@@ -730,7 +749,7 @@ function pauseGame(reason) {
   if (sess.pause(reason)) {
     $('overlay-pause').hidden = false;
     $('btn-resume').focus();
-    announce('Paused.');
+    announce(T('Paused.'));
   }
 }
 function resumeGame() {
@@ -739,7 +758,7 @@ function resumeGame() {
     $('overlay-pause').hidden = true;
     refreshHUD();
     $('canvas-host').focus();
-    announce('Resumed.');
+    announce(T('Resumed.'));
   }
 }
 
@@ -753,54 +772,78 @@ function postToLeaderboard(r) {
   const hotseat = !!(cfg && cfg.players && cfg.players.length > 1 && !cfg.players.some(p => p.ai));
   if (!P || !P.hosted || !cfg || cfg.kind === 'learn' || hotseat) { line.hidden = true; return; }
   line.hidden = false;
-  line.textContent = P_STR.lbPosting;
+  lbResult = null;
+  renderLeaderboardLine();
   P.submitScore(r.score.total).then(res => {
-    line.textContent = !res.posted ? P_STR.lbNotPosted
-      : res.rank ? P_STR.lbRank.replace('{rank}', res.rank) : P_STR.lbPosted;
+    lbResult = res;
+    renderLeaderboardLine();
   });
+}
+let lbResult = null;
+function renderLeaderboardLine() {
+  const line = $('res-leaderboard');
+  if (!line || line.hidden) return;
+  const res = lbResult;
+  line.textContent = !res ? T('Posting score to the leaderboard…') : !res.posted ? T('Score not posted to the leaderboard.')
+    : res.rank ? T('Leaderboard rank: #{rank}', { rank: res.rank }) : T('Score posted to the leaderboard.');
+}
+
+// Results card text (re-rendered on a language change; no side effects).
+let lastResults = null;
+function renderResultsText() {
+  if (!lastResults) return;
+  const { r, newAch } = lastResults;
+  const won = r.youWon;
+  const headline = r.ruleset === 'eightball'
+    ? (won ? T('You win the match!') : T('The house wins.'))
+    : (won ? T('Table clear!') : terminalReasonText(r.terminal.reason));
+  $('res-headline').textContent = headline;
+  $('res-stars').textContent = starsText(r.stars);
+  $('res-stars').setAttribute('aria-label', T('{n} of 3 stars', { n: r.stars }));
+
+  const bd = $('res-breakdown');
+  bd.innerHTML = '';
+  const rows = [
+    [T('Pots'), r.score.pots], [T('Win bonus'), r.score.winBonus],
+    [T('Shot bonus'), r.score.shotBonus], [T('Foul penalty'), r.score.foulPenalty]
+  ];
+  for (const [label, val] of rows) {
+    const div = document.createElement('div');
+    const dt = document.createElement('dt'); dt.textContent = label;
+    const dd = document.createElement('dd'); dd.textContent = (val >= 0 ? '+' : '') + val;
+    div.append(dt, dd);
+    bd.appendChild(div);
+  }
+  const tot = document.createElement('div');
+  tot.className = 'total-row';
+  const tdt = document.createElement('dt'); tdt.textContent = T('Total');
+  const tdd = document.createElement('dd'); tdd.textContent = r.score.total;
+  tot.append(tdt, tdd);
+  bd.appendChild(tot);
+  $('res-detail').textContent = T('{shots} shots · {pots} pots · {fouls} fouls · {secs}s simulated',
+    { shots: r.shots, pots: r.pots, fouls: r.fouls, secs: Math.round(r.elapsedTicks / 240) });
+  const al = $('res-achievements');
+  al.innerHTML = '';
+  for (const key of newAch) {
+    const a = Content.ACHIEVEMENTS.find(a => a.key === key);
+    const li = document.createElement('li');
+    li.textContent = '🏆 ' + T('Achievement: {name}', { name: a ? T(a.name) : key });
+    al.appendChild(li);
+  }
+  renderLeaderboardLine();
+  return headline;
 }
 
 function showResults(r) {
   refreshHUD();
   const state = sess.getState();
   const won = r.youWon;
-  const headline = r.ruleset === 'eightball'
-    ? (won ? 'You win the match!' : 'The house wins.')
-    : (won ? 'Table clear!' : terminalReasonText(r.terminal.reason));
-  $('res-headline').textContent = headline;
-  $('res-stars').textContent = starsText(r.stars);
-  $('res-stars').setAttribute('aria-label', r.stars + ' of 3 stars');
-
-  const bd = $('res-breakdown');
-  bd.innerHTML = '';
-  const rows = [
-    ['Pots', r.score.pots], ['Win bonus', r.score.winBonus],
-    ['Shot bonus', r.score.shotBonus], ['Foul penalty', r.score.foulPenalty]
-  ];
-  for (const [label, val] of rows) {
-    const div = document.createElement('div');
-    div.innerHTML = `<dt>${label}</dt><dd>${val >= 0 ? '+' : ''}${val}</dd>`;
-    bd.appendChild(div);
-  }
-  const tot = document.createElement('div');
-  tot.className = 'total-row';
-  tot.innerHTML = `<dt>Total</dt><dd>${r.score.total}</dd>`;
-  bd.appendChild(tot);
-  $('res-detail').textContent =
-    `${r.shots} shots · ${r.pots} pots · ${r.fouls} fouls · ${Math.round(r.elapsedTicks / 240)}s simulated`;
-
   // progression + achievements
   const newAch = updateProgression(r);
-  const al = $('res-achievements');
-  al.innerHTML = '';
-  for (const key of newAch) {
-    const a = Content.ACHIEVEMENTS.find(a => a.key === key);
-    const li = document.createElement('li');
-    li.textContent = '🏆 Achievement: ' + (a ? a.name : key);
-    al.appendChild(li);
-  }
+  lastResults = { r, newAch };
+  const headline = renderResultsText();
   if (newAch.length) {
-    announce('Achievement unlocked: ' + newAch.join(', '));
+    announce(T('Achievement unlocked: {name}', { name: newAch.map(k => { const a = Content.ACHIEVEMENTS.find(x => x.key === k); return a ? T(a.name) : k; }).join(', ') }));
     setTimeout(() => Audio.achievement(), 700); // after the win/lose motif
   }
   // key art banner only on a win; stays hidden if the image failed to load
@@ -809,7 +852,7 @@ function showResults(r) {
   postToLeaderboard(r);
 
   if (won) Audio.win(); else Audio.lose();
-  announce(headline + ' Score ' + r.score.total + ', ' + r.stars + ' stars.', true);
+  announce(T('{headline} Score {score}, {stars} stars.', { headline, score: r.score.total, stars: r.stars }), true);
 
   // next: journey advances, everything else goes back to its list
   const jIdx = Content.JOURNEY.findIndex(j => j.id === r.cfgId);
@@ -821,10 +864,10 @@ function showResults(r) {
 }
 
 function terminalReasonText(reason) {
-  return {
-    'shot-limit': 'Out of shots.', 'black-early': 'The black went down too soon.',
-    'black-scratch': 'Foul on the black.', 'resigned': 'Resigned.'
-  }[reason] || 'Game over.';
+  return T({
+    'shot-limit': N('Out of shots.'), 'black-early': N('The black went down too soon.'),
+    'black-scratch': N('Foul on the black.'), 'resigned': N('Resigned.')
+  }[reason] || N('Game over.'));
 }
 
 function updateProgression(r) {
@@ -864,26 +907,28 @@ function updateProgression(r) {
 
 // ---------------------------------------------------------------- screens --
 function buildHelp() {
+  const p = (text) => `<p>${esc(text)}</p>`;
+  const li = (text) => `<li>${esc(text)}</li>`;
   const cards = [
-    ['Controls', `<ul>
-      <li>${kbd('aimLeft')} ${kbd('aimRight')} fine aim (hold <kbd>Shift</kbd> for finer)</li>
-      <li>${kbd('powerUp')} / ${kbd('powerDown')} power</li>
-      <li>${kbd('shoot')} shoot (or place, when ball in hand)</li>
-      <li>${kbd('hint')} hint · ${kbd('undo')} undo · ${kbd('pause')}/${kbd('back')} pause</li>
-      <li>Drag on the table to aim; tap a free spot to place the cue ball.</li>
-      <li><kbd>Tab</kbd> reaches every control.</li></ul>`],
-    ['Clearance', '<p>Pot every ball before your shots run out. Where the black is marked "last", potting it early loses the round.</p>'],
-    ['8-ball', '<p>The table is open until someone pots legally — that group (solids or stripes) becomes theirs. Clear your group, then the 8. Potting the 8 early, or scratching on the 8, loses.</p>'],
-    ['Fouls', '<ul><li>Cue ball potted (scratch)</li><li>No ball contacted</li><li>Wrong ball hit first</li><li>No cushion after contact</li></ul><p>A foul costs 75 points and gives ball in hand.</p>'],
-    ['Spin', '<p>Follow (top spin) pushes the cue ball on after contact; draw pulls it back. Side spin kicks it sideways off cushions.</p>'],
-    ['Scoring', '<p>+100 per pot, +500 win bonus, +50 per unused shot, −75 per foul. Three stars at par or better, two within two shots of par.</p>']
+    [T('Controls'), `<ul>
+      <li>${kbd('aimLeft')} ${kbd('aimRight')} ${esc(T('fine aim (hold Shift for finer)'))}</li>
+      <li>${kbd('powerUp')} / ${kbd('powerDown')} ${esc(T('power'))}</li>
+      <li>${kbd('shoot')} ${esc(T('shoot (or place, when ball in hand)'))}</li>
+      <li>${kbd('hint')} ${esc(T('hint'))} · ${kbd('undo')} ${esc(T('undo'))} · ${kbd('pause')}/${kbd('back')} ${esc(T('pause'))}</li>
+      ${li(T('Drag on the table to aim; tap a free spot to place the cue ball.'))}
+      <li><kbd>Tab</kbd> ${esc(T('reaches every control.'))}</li></ul>`],
+    [T('Clearance'), p(T('Pot every ball before your shots run out. Where the black is marked "last", potting it early loses the round.'))],
+    [T('8-ball'), p(T('The table is open until someone pots legally — that group (solids or stripes) becomes theirs. Clear your group, then the 8. Potting the 8 early, or scratching on the 8, loses.'))],
+    [T('Fouls'), `<ul>${li(T('Cue ball potted (scratch)'))}${li(T('No ball contacted'))}${li(T('Wrong ball hit first'))}${li(T('No cushion after contact'))}</ul>${p(T('A foul costs 75 points and gives ball in hand.'))}`],
+    [T('Spin'), p(T('Follow (top spin) pushes the cue ball on after contact; draw pulls it back. Side spin kicks it sideways off cushions.'))],
+    [T('Scoring'), p(T('+100 per pot, +500 win bonus, +50 per unused shot, −75 per foul. Three stars at par or better, two within two shots of par.'))]
   ];
   const host = $('help-cards');
   host.innerHTML = '';
   for (const [title, body] of cards) {
     const d = document.createElement('article');
     d.className = 'help-card';
-    d.innerHTML = `<h3>${title}</h3>${body}`;
+    d.innerHTML = `<h3>${esc(title)}</h3>${body}`;
     host.appendChild(d);
   }
 }
@@ -899,15 +944,20 @@ function syncSettingsForm() {
   if (gfxPanel) gfxPanel.refresh();
 }
 
-function bindSettings() {
+function fillThemes() {
   const themeSel = $('set-theme');
   themeSel.innerHTML = '';
   for (const t of Content.THEMES) {
     const o = document.createElement('option');
-    o.value = t.id; o.textContent = t.name;
+    o.value = t.id; o.textContent = T(t.name);
     themeSel.appendChild(o);
   }
   themeSel.value = settings.theme;
+}
+
+function bindSettings() {
+  const themeSel = $('set-theme');
+  fillThemes();
   themeSel.addEventListener('change', () => { settings.theme = themeSel.value; saveSettings(); applySettingsClasses(); });
   gfxPanel = mountGraphicsPanel({
     getSaved: gfxSaved,
@@ -972,7 +1022,7 @@ function bindMenus() {
 
   $('profile-name').value = settings.name;
   $('profile-name').addEventListener('change', () => {
-    settings.name = $('profile-name').value.trim() || 'Guest';
+    settings.name = $('profile-name').value.trim() || T('Guest');
     $('profile-name').value = settings.name;
     saveSettings();
   });
@@ -1008,7 +1058,7 @@ function updateHomeProgress() {
     .reduce((n, k) => n + save.journeyStars[k], 0);
   const done = Content.JOURNEY.filter(j => (save.journeyStars[j.id] || 0) > 0).length;
   $('home-progress').textContent =
-    `Journey ${done}/36 · ${stars} stars · career pots ${save.careerPots}`;
+    T('Journey {done}/36 · {stars} stars · career pots {pots}', { done, stars, pots: save.careerPots });
 }
 
 // ---------------------------------------------------------------- time -----
@@ -1034,19 +1084,58 @@ function renderAccountLine() {
   $('btn-invite').hidden = !canInvite;
   $('platform-row').hidden = !canSign && !canInvite;
   if (!P.hosted) {
-    el.textContent = P_STR.offline;
+    el.textContent = T('Offline — progress is stored on this device.');
     return;
   }
   const name = P.profile ? P.profile.name : '…';
-  el.textContent = P_STR.playing.replace('{name}', name) + ' · ' +
-    (P.sync === 'synced' ? P_STR.synced : P.sync === 'saving' ? P_STR.saving : P_STR.nosync);
+  el.textContent = T('Playing as {name}', { name }) + ' · ' +
+    (P.sync === 'synced' ? T('progress synced') : P.sync === 'saving' ? T('saving…') : T('cloud sync unavailable'));
 }
 
 function inviteFriend() {
   const link = window.CQCPlatform.inviteLink();
   if (!link) return;
-  const fail = () => toast(P_STR.copyFail.replace('{link}', link));
-  try { navigator.clipboard.writeText(link).then(() => toast(P_STR.copied), fail); } catch (e) { fail(); }
+  const fail = () => toast(T('Could not copy — invite link: {link}', { link }));
+  try { navigator.clipboard.writeText(link).then(() => toast(T('Invite link copied to the clipboard.')), fail); } catch (e) { fail(); }
+}
+
+// Another device saved since this one last loaded: reload the cloud slot,
+// merge it with local progress (better stars, every lesson, daily and
+// achievement from either side, the larger career pot count), adopt the merge
+// and save it back. A game in progress is untouched.
+let merging = false;
+function mergeCloudConflict() {
+  const P = window.CQCPlatform;
+  if (!P || merging) return;
+  merging = true;
+  P.loadCloud().then((remoteJson) => {
+    if (P.saveConflicted()) return; // the reload failed: writes stay blocked
+    const remote = remoteJson ? parseSave(remoteJson) : null;
+    save = Session.mergeSaves(remote, save);
+    persistSave(); // also pushes the merge to the cloud slot
+    buildLists();
+    updateHomeProgress();
+    renderAccountLine();
+  }).catch(() => {}).then(() => { merging = false; });
+}
+
+// The language changed: re-render every visible screen, the HUD, open
+// overlays and live labels in place. The table, the shot replay and the
+// session are untouched.
+function onLanguageChange() {
+  renderAccountLine();
+  updateHomeProgress();
+  buildLists();
+  buildHelp();
+  renderSetup();
+  fillThemes();
+  if (gfxPanel) gfxPanel.relabel();
+  syncSpinUI();
+  if (sess) {
+    refreshHUD();
+    renderLessonBanner();
+    if (!$('overlay-results').hidden) renderResultsText();
+  }
 }
 
 // Signed-in boot work: nickname, remote save (wins), settings KV, bindings.
@@ -1111,13 +1200,13 @@ export function init() {
       syncFromPlatform();
       syncServerTime();
     });
-    $('btn-signin').textContent = P_STR.signIn;
-    $('btn-invite').textContent = P_STR.invite;
+    P.onSaveConflict(mergeCloudConflict);
     $('btn-signin').addEventListener('click', () => P.signIn());
     $('btn-invite').addEventListener('click', () => { Audio.unlock(); inviteFriend(); });
     syncFromPlatform();
     renderAccountLine();
   }
+  if (window.CQCI18n) window.CQCI18n.onChange(onLanguageChange);
   applySettingsClasses();
   buildLists();
   buildHelp();

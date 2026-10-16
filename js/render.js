@@ -977,7 +977,9 @@ function createThree(host, opts) {
 function create2D(host, opts) {
   const canvas = document.createElement('canvas');
   canvas.setAttribute('role', 'img');
-  canvas.setAttribute('aria-label', 'Pool table (2D view)');
+  // data-i18n-aria: js/i18n.js re-labels it when the game language changes.
+  canvas.setAttribute('data-i18n-aria', 'Pool table (2D view)');
+  canvas.setAttribute('aria-label', window.CQCI18n ? window.CQCI18n.T('Pool table (2D view)') : 'Pool table (2D view)');
   host.appendChild(canvas);
   const g = canvas.getContext('2d');
   let theme = opts.theme;

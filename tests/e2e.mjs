@@ -106,7 +106,8 @@ const OWN_SERVER = /^\/(api|ws)(\/|$)/;
 async function platformPass(browser, pass, viewport, hasTouch) {
   const context = await browser.newContext({ viewport, hasTouch });
   const page = await context.newPage();
-  const errors = [], seen = [];
+  const errors = [], seen = [], bodies = {};
+  let prefLang = 'en';
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   page.on('console', (m) => {
     if ((m.type() === 'error' || m.type() === 'warning') && !browserNoise.test(m.text())) errors.push(`console ${m.type()}: ${m.text()}`);
@@ -116,8 +117,13 @@ async function platformPass(browser, pass, viewport, hasTouch) {
   await page.route((url) => PLATFORM_API.test(url.pathname), (route) => {
     const req = route.request(), u = new URL(req.url());
     seen.push(req.method() + ' ' + u.pathname);
-    const json = (o) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(o) });
+    if (req.method() !== 'GET') bodies[req.method() + ' ' + u.pathname] = req.postData();
+    const json = (o, status = 200) => route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(o) });
     if (u.pathname.endsWith('/profile')) return json({ nickname: 'Pip Tester' });
+    if (u.pathname === '/api/v1/me/language') return json({ preferredLanguage: prefLang });
+    if (u.pathname.includes('/cloud-saves/') && req.method() === 'PUT') return json({ etag: '"v' + seen.length + '"' });
+    if (/\/settings\/ui\.language$/.test(u.pathname) && req.method() === 'PUT') return json({ key: 'ui.language' });
+    if (u.pathname.endsWith('/reports') && req.method() === 'POST') return json({ id: 'r1', kind: 'bug', status: 'open', createdAt: new Date().toISOString() }, 201);
     if (u.pathname.endsWith('/settings') && req.method() === 'GET') return json({ settings: { highContrast: true } });
     if (u.pathname.endsWith('/controls')) return json({ actions: [{ action: 'hint', codes: ['KeyJ'] }] });
     return route.fulfill({ status: 204 });
@@ -148,6 +154,62 @@ async function platformPass(browser, pass, viewport, hasTouch) {
       await page.locator('#btn-help').scrollIntoViewIfNeeded();
       await click('#btn-help');
       await page.waitForFunction(() => /J hint/.test(document.getElementById('help-cards').textContent), null, { timeout: 3000 });
+    });
+    await step('language: Automatic follows the account (fr-CA); Deutsch re-renders and saves ui.language; report a problem', async () => {
+      prefLang = 'fr-CA';
+      await page.goto('about:blank');
+      await page.goto(`http://127.0.0.1:${PORT}/#game_token=${jwt}`, { waitUntil: 'load' });
+      await page.waitForFunction(() => document.documentElement.lang === 'fr-CA', null, { timeout: 8000 });
+      if ((await page.locator('#btn-journey').textContent()) !== 'Voyage') throw new Error('home not in fr-CA');
+      await page.locator('#btn-settings').scrollIntoViewIfNeeded();
+      await click('#btn-settings');
+      const choice = page.locator('[data-game-language="choice"]');
+      await choice.waitFor({ timeout: 5000 });
+      await choice.scrollIntoViewIfNeeded();
+      const auto = await choice.locator('option').first().textContent();
+      if (auto !== 'Automatique — Français (Canada)') throw new Error('Automatic label: ' + auto);
+      await choice.selectOption('de-DE');
+      await page.waitForFunction(() => document.documentElement.lang === 'de-DE');
+      await page.waitForFunction(() => /Im Konto gespeichert/.test(document.querySelector('[data-game-language="status"]').textContent), null, { timeout: 5000 });
+      const de = await page.evaluate(() => ({
+        h: document.getElementById('settings-title').textContent,
+        motion: document.querySelector('#set-motion + span').textContent,
+        gfx: document.getElementById('gfx-legend').textContent,
+        menu: document.getElementById('btn-journey').textContent,
+        stillThere: !!document.querySelector('[data-game-language="choice"]'),
+      }));
+      if (de.h !== 'Einstellungen' || de.motion !== 'Weniger Bewegung' || de.gfx !== 'Grafik' || de.menu !== 'Reise' || !de.stillThere) throw new Error('not re-rendered: ' + JSON.stringify(de));
+      const saved = bodies['PUT /api/v1/games/cushion-and-cue/settings/ui.language'];
+      if (!saved || JSON.parse(saved).value.choice !== 'de-DE') throw new Error('ui.language not saved: ' + saved);
+      await page.locator('[data-game-report="title"]').scrollIntoViewIfNeeded();
+      await page.fill('[data-game-report="title"]', 'Language test report');
+      await click('[data-game-report="send"]');
+      await page.waitForFunction(() => /Danke/.test(document.querySelector('[data-game-report="status"]').textContent), null, { timeout: 5000 });
+      if (JSON.parse(bodies['POST /api/v1/games/cushion-and-cue/reports'] || '{}').kind !== 'bug') throw new Error('report not posted');
+      await page.screenshot({ path: SHOT('language-de', pass) });
+      if (await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)) throw new Error('German settings overflow horizontally');
+    });
+    await step('language: switching mid-game re-renders the HUD and keeps the table', async () => {
+      await page.locator('#screen-settings .btn-back').scrollIntoViewIfNeeded();
+      await click('#screen-settings .btn-back');
+      await click('#btn-play');
+      await click('#setup-start');
+      await page.waitForFunction(() => !document.getElementById('screen-game').hidden, null, { timeout: 8000 });
+      const before = await page.evaluate(() => document.getElementById('hud-score').textContent);
+      await click('#btn-pause');
+      await click('#btn-pause-settings');
+      const choice = page.locator('[data-game-language="choice"]');
+      await choice.scrollIntoViewIfNeeded();
+      await choice.selectOption('it-IT');
+      await page.waitForFunction(() => document.documentElement.lang === 'it-IT');
+      const it = await page.evaluate(() => ({
+        player: document.getElementById('hud-player').textContent,
+        score: document.getElementById('hud-score').textContent,
+        shoot: document.querySelector('#btn-shoot span').textContent,
+      }));
+      if (!/^Turno: /.test(it.player) || !/^Punti 0 · Tiri rimasti/.test(it.score) || it.shoot !== 'Tira' || !/^Punkte 0 · Stöße übrig/.test(before)) throw new Error('HUD not re-rendered: ' + JSON.stringify({ before, ...it }));
+      await choice.selectOption('auto');
+      await page.waitForFunction(() => document.documentElement.lang === 'fr-CA');
     });
     if (errors.length) throw new Error(`[${pass}] page errors:\n` + errors.join('\n'));
   } finally {

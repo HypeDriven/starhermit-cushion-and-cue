@@ -19,7 +19,7 @@
   var hosted = false;
   var profile = null;          // { name } for the signed-in player
   var sync = 'offline';        // offline | saving | synced (cloud mirror)
-  var syncListeners = [], authListeners = [];
+  var syncListeners = [], authListeners = [], conflictListeners = [];
   var started = false;
 
   function sdk() { return SH || (SH = root.StarHermit || null); }
@@ -116,6 +116,11 @@
       started = true;
       s.init();
       s.on('saved', function (ok) { if (hosted) setSync(ok ? 'synced' : 'offline'); });
+      // Another device saved since our last load: the SDK refused the write
+      // and blocks further writes until the game reloads (loadCloud) and merges.
+      s.on('saveconflict', function () {
+        conflictListeners.forEach(function (fn) { try { fn(); } catch (e) { /* ignore */ } });
+      });
       s.on('auth', function (a) {
         var was = hosted;
         hosted = !!(a && a.signedIn && s.slug);
@@ -161,6 +166,8 @@
     },
     onSync: function (fn) { if (typeof fn === 'function') syncListeners.push(fn); },
     onAuth: function (fn) { if (typeof fn === 'function') authListeners.push(fn); },
+    onSaveConflict: function (fn) { if (typeof fn === 'function' && conflictListeners.indexOf(fn) < 0) conflictListeners.push(fn); },
+    saveConflicted: function () { var s = sdk(); return !!(s && s.saveConflicted && s.saveConflicted()); },
     get hosted() { return hosted; },
     get profile() { return profile; },
     get sync() { return sync; },

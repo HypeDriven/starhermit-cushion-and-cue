@@ -310,5 +310,31 @@
     return api;
   }
 
-  return { create: create, starsFor: starsFor, REPLAY_SCHEMA: REPLAY_SCHEMA };
+  /**
+   * Merge two progression saves after a cloud-save conflict (another device
+   * saved since this one last loaded): the better star count per stage and
+   * challenge, every lesson / achievement / daily from either side, the larger
+   * career pot count, the later last-game snapshot. Nothing earned is lost.
+   * The caller re-checksums the result.
+   */
+  function mergeSaves(remote, local) {
+    var a = remote || {}, b = local || {};
+    function obj(x) { return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; }
+    var out = { version: b.version || a.version || 1, journeyStars: {}, lessonsDone: {}, achievements: {},
+                careerPots: Math.max(+a.careerPots || 0, +b.careerPots || 0), dailyDays: [], lastSnapshot: null, checksum: '' };
+    [obj(a.journeyStars), obj(b.journeyStars)].forEach(function (m) {
+      Object.keys(m).forEach(function (k) { out.journeyStars[k] = Math.max(out.journeyStars[k] || 0, +m[k] || 0); });
+    });
+    ['lessonsDone', 'achievements'].forEach(function (f) {
+      [obj(a[f]), obj(b[f])].forEach(function (m) { Object.keys(m).forEach(function (k) { if (m[k]) out[f][k] = true; }); });
+    });
+    var days = {};
+    [a.dailyDays, b.dailyDays].forEach(function (d) { (Array.isArray(d) ? d : []).forEach(function (x) { days[x] = true; }); });
+    out.dailyDays = Object.keys(days).sort();
+    var sa = a.lastSnapshot, sb = b.lastSnapshot;
+    out.lastSnapshot = !sa ? (sb || null) : !sb ? sa : (String(sb.at || '') >= String(sa.at || '') ? sb : sa);
+    return out;
+  }
+
+  return { create: create, starsFor: starsFor, mergeSaves: mergeSaves, REPLAY_SCHEMA: REPLAY_SCHEMA };
 });

@@ -1,8 +1,8 @@
 /* Cushion & Cue — Graphics section of the Settings screen (ES module).
  * Quality preset (Auto + four presets), render scale, one override per
  * CCGfx category, adaptive resolution, frame-rate readout and a summary line
- * "GPU · cost · W×H px". Its strings are localized from navigator.language
- * (the rest of the game is English only). Controls carry stable ids:
+ * "GPU · cost · W×H px". Its strings follow the game language (js/i18n.js)
+ * like every other string. Controls carry stable ids:
  * #set-quality, #gfx-scale, #gfx-<category>, #gfx-adaptive, #gfx-fps,
  * #gfx-summary, #gfx-note.
  */
@@ -161,9 +161,14 @@ export function probeGpu() {
  *  getSaved(): { preset, render_scale, adaptive, show_fps, <cat> }
  *  setSaved(obj): persist + apply (the caller forwards to the renderer)
  */
+// The panel follows the game language (js/i18n.js: Settings → Language).
+function gameLocale() {
+  return window.CQCI18n ? window.CQCI18n.lang : pickLocale(navigator.languages || [navigator.language]);
+}
+
 export function mountGraphicsPanel(opts) {
-  const locale = pickLocale(navigator.languages || [navigator.language]);
-  const t = strings(locale);
+  let locale = gameLocale();
+  let t = strings(locale);
   const fs = document.getElementById('set-graphics');
   const body = document.getElementById('gfx-body');
   fs.setAttribute('lang', locale);
@@ -193,10 +198,11 @@ export function mountGraphicsPanel(opts) {
   const scaleWrap = document.createElement('span');
   scaleWrap.className = 'gfx-scale';
   scaleWrap.append(scale, scaleOut);
-  body.appendChild(row(t.scale, scaleWrap).label);
+  const scaleRow = row(t.scale, scaleWrap);
+  body.appendChild(scaleRow.label);
 
   // Category overrides
-  const catSel = {};
+  const catSel = {}, catSpan = {};
   for (const cat of Object.keys(Gfx.CATEGORIES)) {
     const sel = document.createElement('select');
     sel.id = 'gfx-' + cat;
@@ -210,15 +216,19 @@ export function mountGraphicsPanel(opts) {
       sel.appendChild(o);
     }
     catSel[cat] = sel;
-    body.appendChild(row(t.cats[cat], sel).label);
+    const r = row(t.cats[cat], sel);
+    catSpan[cat] = r.span;
+    body.appendChild(r.label);
   }
 
+  const checkText = {};
   const check = (id, text) => {
     const box = document.createElement('input');
     box.type = 'checkbox'; box.id = id;
     const l = document.createElement('label');
     l.className = 'check';
-    l.append(box, document.createTextNode(' ' + text));
+    checkText[id] = document.createTextNode(' ' + text);
+    l.append(box, checkText[id]);
     body.appendChild(l);
     return box;
   };
@@ -291,6 +301,25 @@ export function mountGraphicsPanel(opts) {
   adaptive.addEventListener('change', () => update(s => { s.adaptive = adaptive.checked; }));
   fps.addEventListener('change', () => update(s => { s.show_fps = fps.checked; }));
 
+  // Language change: swap every label in place (the shared sections that
+  // game-options.js appends to this fieldset are left alone).
+  function relabel() {
+    locale = gameLocale();
+    t = strings(locale);
+    fs.setAttribute('lang', locale);
+    document.getElementById('gfx-legend').textContent = t.legend;
+    document.getElementById('gfx-quality-label').textContent = t.quality;
+    scaleRow.span.textContent = t.scale;
+    for (const cat in catSel) {
+      catSpan[cat].textContent = t.cats[cat];
+      for (const o of catSel[cat].options) if (o.value !== 'preset') o.textContent = tierName(o.value);
+    }
+    checkText['gfx-adaptive'].textContent = ' ' + t.adaptive;
+    checkText['gfx-fps'].textContent = ' ' + t.fps;
+    note.textContent = t.postFailed;
+    refresh();
+  }
+
   refresh();
-  return { refresh, detected, gpu };
+  return { refresh, relabel, detected, gpu };
 }
