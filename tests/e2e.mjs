@@ -301,7 +301,7 @@ async function runPass(browser, pass, viewport, hasTouch) {
       await page.check('#gfx-fps');
       await page.locator('#gfx-scale').fill('150');
       const summary = await page.textContent('#gfx-summary');
-      if (/Bloom/.test(summary) || !/Shadows 2048/.test(summary)) throw new Error('summary does not reflect the override: ' + summary);
+      if (/Bloom/.test(summary) || !/Shadows 2048/.test(summary) || !/ · Level 0 · /.test(summary)) throw new Error('summary does not reflect the override: ' + summary);
       // the panel fits: no horizontal overflow on the page or inside the fieldset
       const fit = await page.evaluate(() => {
         const fs = document.getElementById('set-graphics');

@@ -86,8 +86,11 @@ function canvasTex(w, h, draw, srgb) {
 // Ball skin: equirectangular map. The number disc sits on the equator at
 // u = 0.25 (and 0.75); the mesh is turned so that point faces up. Stripes
 // (9–15) get a white body with a coloured band through the number.
-function ballTexture(n, hc) {
-  return canvasTex(512, 256, (g, w, h) => {
+function ballTexture(n, hc, size = 512) {
+  // Per-preset texture variant (budget.ballTex); drawn in 512×256 units.
+  return canvasTex(size, size / 2, (g, W, H) => {
+    g.scale(W / 512, H / 256);
+    const w = 512, h = 256;
     const col = hexCss(ballColor(n, hc));
     const stripe = n >= 9 && n <= 15;
     g.fillStyle = stripe || n === 0 ? (hc ? '#ffffff' : '#f6f1e6') : col;
@@ -198,11 +201,52 @@ function cueTexture() {
   });
 }
 
+// Run a post pass at a fraction of the frame (per-preset budget). EffectComposer sizes every pass to the
+// full frame in addPass/setSize, so the pass's own setSize is wrapped to apply the scale.
+function atScale(pass, k) {
+  if (!(k > 0 && k < 1)) return pass;
+  const setSize = pass.setSize.bind(pass);
+  pass.setSize = (w, h) => setSize(Math.max(1, Math.round(w * k)), Math.max(1, Math.round(h * k)));
+  return pass;
+}
+
+// Merge meshes that share one material into a single mesh (world transforms baked in).
+function mergeMeshes(meshes) {
+  const parts = meshes.map(m => { m.updateMatrix(); return m.geometry.toNonIndexed().applyMatrix4(m.matrix); });
+  const out = new THREE.BufferGeometry();
+  for (const name of ['position', 'normal', 'uv']) {
+    if (!parts.every(g => g.attributes[name])) continue;
+    const size = parts[0].attributes[name].itemSize;
+    const arr = new Float32Array(parts.reduce((n, g) => n + g.attributes[name].array.length, 0));
+    let o = 0;
+    for (const g of parts) { arr.set(g.attributes[name].array, o); o += g.attributes[name].array.length; }
+    out.setAttribute(name, new THREE.BufferAttribute(arr, size));
+  }
+  for (const g of parts) g.dispose();
+  const mesh = new THREE.Mesh(out, meshes[0].material);
+  mesh.castShadow = meshes[0].castShadow; mesh.receiveShadow = meshes[0].receiveShadow;
+  return mesh;
+}
+
 // ---------------------------------------------------------------- 3D -------
 function createThree(host, opts) {
   const gpu = opts.gpu || '';
-  const detected = opts.detected || Gfx.detectPreset(gpu, false);
-  let q = Gfx.resolve(opts.graphics || {}, detected);
+  const detected = opts.detected || Gfx.detectPreset(gpu, {});
+  const level = opts.level != null ? opts.level : Gfx.detectLevel(gpu, {});
+  let q = Gfx.resolve(opts.graphics || {}, detected, level);
+  // Lit material in the preset budget's class: Lambert on Low, Standard on Balanced, Physical (clearcoat,
+  // sheen) on High/Ultra where `physical` is asked for. Parameters a class lacks are dropped (no warnings).
+  function lit(params, physical) {
+    const kind = q.budget.material;
+    const { roughness, metalness, clearcoat, clearcoatRoughness, sheen, sheenRoughness, sheenColor, envMapIntensity, ...rest } = params;
+    if (kind === 'lambert') return new THREE.MeshLambertMaterial(rest);
+    if (kind === 'physical' && physical) return new THREE.MeshPhysicalMaterial(params);
+    const sp = Object.assign({}, rest);
+    if (roughness != null) sp.roughness = roughness;
+    if (metalness != null) sp.metalness = metalness;
+    if (envMapIntensity != null) sp.envMapIntensity = envMapIntensity;
+    return new THREE.MeshStandardMaterial(sp);
+  }
   const canvasAA = q.antialias === 'msaa';
   const renderer = new THREE.WebGLRenderer({ antialias: canvasAA, alpha: false, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -283,7 +327,7 @@ function createThree(host, opts) {
     pool.color.set(p.light);
     key.color.set(p.light).lerp(new THREE.Color(0xffffff), 0.6);
 
-    const floorMat = new THREE.MeshStandardMaterial({ color: p.floor, roughness: detailed ? 0.75 : 0.95, envMapIntensity: 0.1 });
+    const floorMat = lit({ color: p.floor, roughness: detailed ? 0.75 : 0.95, envMapIntensity: 0.1 });
     if (detailed) floorMat.map = getTex('plank', () => plankTexture(opts.decorSeed));
     const floor = new THREE.Mesh(new THREE.PlaneGeometry(9, 7), floorMat);
     floor.rotation.x = -Math.PI / 2; floor.position.y = -0.78;
@@ -293,13 +337,13 @@ function createThree(host, opts) {
     if (detailed) {
       rugTex = rugTexture(p);
       const rug = new THREE.Mesh(new THREE.PlaneGeometry(3.9, 2.5),
-        new THREE.MeshStandardMaterial({ map: rugTex, roughness: 1, envMapIntensity: 0.1 }));
+        lit({ map: rugTex, roughness: 1, envMapIntensity: 0.1 }));
       rug.rotation.x = -Math.PI / 2; rug.position.y = -0.775;
       rug.receiveShadow = true;
       envGroup.add(rug);
     }
 
-    const wallMat = new THREE.MeshStandardMaterial({ color: p.wall, roughness: 0.9, envMapIntensity: 0.15 });
+    const wallMat = lit({ color: p.wall, roughness: 0.9, envMapIntensity: 0.15 });
     const mkWall = (w, x, z, ry) => {
       const wall = new THREE.Mesh(new THREE.BoxGeometry(w, 2.4, 0.1), wallMat);
       wall.position.set(x, 0.4, z); wall.rotation.y = ry;
@@ -312,7 +356,7 @@ function createThree(host, opts) {
     const decor = window.CCRNG.derive(opts.decorSeed || 1, window.CCRNG.STREAM_DECOR);
     const frameGeo = new THREE.BoxGeometry(0.5, 0.36, 0.03);
     for (let i = 0; i < 6; i++) {
-      const m = new THREE.Mesh(frameGeo, new THREE.MeshStandardMaterial({
+      const m = new THREE.Mesh(frameGeo, lit({
         color: decor.next() < 0.5 ? p.accent : p.metal, roughness: 0.6, metalness: 0.3
       }));
       const side = decor.int(2) ? -2.53 : 2.53;
@@ -344,9 +388,9 @@ function createThree(host, opts) {
 
   function feltMaterial(color, detailed) {
     const m = detailed
-      ? new THREE.MeshPhysicalMaterial({ color, roughness: 0.9, sheen: 0.35, sheenRoughness: 0.8,
-        sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.15), envMapIntensity: 0.12, map: clothTex })
-      : new THREE.MeshStandardMaterial({ color, roughness: 0.92, map: clothTex });
+      ? lit({ color, roughness: 0.9, sheen: 0.35, sheenRoughness: 0.8,
+        sheenColor: new THREE.Color(color).lerp(new THREE.Color(0xffffff), 0.15), envMapIntensity: 0.12, map: clothTex }, true)
+      : lit({ color, roughness: 0.92, map: clothTex });
     clothMats.push(m);
     return m;
   }
@@ -364,6 +408,8 @@ function createThree(host, opts) {
     const detailed = q.detail === 'detailed';
     const casts = q.shadows !== 'off';
     const add = mesh => { tableGroup.add(mesh); tableParts.push(mesh); return mesh; };
+    // Low/Balanced merge same-material parts into one mesh each (budget.mergeTable): fewer draw calls.
+    const merge = { rails: [], woodX: [], woodZ: [], pockets: [] };
 
     const cloth = new THREE.Mesh(new THREE.BoxGeometry(T.PLAY_W + 0.24, 0.06, T.PLAY_H + 0.24),
       feltMaterial(p.cloth, detailed));
@@ -376,7 +422,7 @@ function createThree(host, opts) {
     const mkRail = (w, d, x, z) => {
       const r = new THREE.Mesh(new THREE.BoxGeometry(w, railH, d), feltMaterial(p.cushion, detailed));
       r.position.set(x, TABLE_TOP + railH / 2, z); r.castShadow = casts; r.receiveShadow = true;
-      add(r);
+      merge.rails.push(add(r));
     };
     const hx = T.PLAY_W / 2, hz = T.PLAY_H / 2;
     mkRail(T.PLAY_W / 2 - 0.12, railW, -(T.PLAY_W / 4 + 0.03), -hz - railW / 2);
@@ -389,19 +435,19 @@ function createThree(host, opts) {
     // wood surround: lacquered grain on Detailed
     const woodH = 0.16, ext = 0.2;
     const mkWoodMat = alongZ => {
-      if (!detailed) return new THREE.MeshStandardMaterial({ color: p.wood, roughness: 0.6 });
+      if (!detailed) return lit({ color: p.wood, roughness: 0.6 });
       const grain = getTex(alongZ ? 'grainZ' : 'grainX', () => {
         const t = grainTexture(opts.decorSeed);
         if (alongZ) { t.center.set(0.5, 0.5); t.rotation = Math.PI / 2; }
         return t;
       });
-      return new THREE.MeshPhysicalMaterial({ color: p.wood, map: grain, roughness: 0.55,
-        clearcoat: 0.5, clearcoatRoughness: 0.35, envMapIntensity: 0.25 });
+      return lit({ color: p.wood, map: grain, roughness: 0.55,
+        clearcoat: 0.5, clearcoatRoughness: 0.35, envMapIntensity: 0.25 }, true);
     };
     const mkWood = (w, d, x, z, alongZ) => {
       const m = new THREE.Mesh(new THREE.BoxGeometry(w, woodH, d), mkWoodMat(alongZ));
       m.position.set(x, TABLE_TOP - woodH / 2 + 0.09, z); m.castShadow = casts; m.receiveShadow = true;
-      add(m);
+      (alongZ ? merge.woodZ : merge.woodX).push(add(m));
     };
     mkWood(T.PLAY_W + ext * 2 + 0.2, ext, 0, -hz - railW - ext / 2, false);
     mkWood(T.PLAY_W + ext * 2 + 0.2, ext, 0, hz + railW + ext / 2, false);
@@ -411,18 +457,22 @@ function createThree(host, opts) {
     if (detailed) {
       // mother-of-pearl diamond sights inlaid in the rails
       const sightGeo = new THREE.CircleGeometry(0.011, 4);
-      const sightMat = new THREE.MeshStandardMaterial({ color: 0xbfb49c, roughness: 0.5, envMapIntensity: 0.3 });
+      const sightMat = lit({ color: 0xbfb49c, roughness: 0.5, envMapIntensity: 0.3 });
       const yTop = TABLE_TOP + 0.0905;
       const zRail = hz + railW + ext / 2, xRail = hx + railW + ext / 2;
       const sights = [];
       for (let k = 1; k <= 7; k++) if (k !== 4) { const x = -hx + k * T.PLAY_W / 8; sights.push([x, -zRail], [x, zRail]); }
       for (let k = 1; k <= 3; k++) { const z = -hz + k * T.PLAY_H / 4; sights.push([-xRail, z], [xRail, z]); }
+      // one instanced draw for all the sights
+      const inst = new THREE.InstancedMesh(sightGeo, sightMat, sights.length);
+      const o = new THREE.Object3D();
       for (let i = 0; i < sights.length; i++) {
-        const s = new THREE.Mesh(sightGeo, sightMat);
-        s.rotation.x = -Math.PI / 2; s.rotation.z = Math.PI / 4;
-        s.position.set(sights[i][0], yTop, sights[i][1]);
-        add(s);
+        o.rotation.set(-Math.PI / 2, 0, Math.PI / 4);
+        o.position.set(sights[i][0], yTop, sights[i][1]);
+        o.updateMatrix();
+        inst.setMatrixAt(i, o.matrix);
       }
+      add(inst);
     }
 
     // pockets: dark cylinders slightly below cloth (+ a leather lip on Detailed)
@@ -430,12 +480,12 @@ function createThree(host, opts) {
     for (const pk of T.POCKETS) {
       const r = pk.kind === 'corner' ? 0.075 : 0.065;
       const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r * 0.8, 0.12, 24),
-        new THREE.MeshStandardMaterial({ color: 0x070708, roughness: 1 }));
+        lit({ color: 0x070708, roughness: 1 }));
       m.position.set(pk.x, TABLE_TOP - 0.055, -pk.y);
-      add(m);
+      merge.pockets.push(add(m));
       if (detailed) {
         const lip = new THREE.Mesh(new THREE.TorusGeometry(r, 0.006, 8, 28),
-          new THREE.MeshPhysicalMaterial({ color: 0x1b120c, roughness: 0.45, clearcoat: 0.6, envMapIntensity: 0.6 }));
+          lit({ color: 0x1b120c, roughness: 0.45, clearcoat: 0.6, envMapIntensity: 0.6 }, true));
         lip.rotation.x = -Math.PI / 2;
         lip.position.set(pk.x, TABLE_TOP + 0.002, -pk.y);
         add(lip);
@@ -444,8 +494,19 @@ function createThree(host, opts) {
         new THREE.MeshBasicMaterial({ color: p.accent, transparent: true, opacity: 0, side: THREE.DoubleSide, toneMapped: false }));
       glow.rotation.x = -Math.PI / 2;
       glow.position.set(pk.x, TABLE_TOP + 0.003, -pk.y);
+      glow.visible = false;
       add(glow);
       pocketMeshes.push({ pocket: pk, glow });
+    }
+    if (q.budget.mergeTable) {
+      for (const list of Object.values(merge)) {
+        if (list.length < 2) continue;
+        const one = add(mergeMeshes(list));
+        for (const o of list) {
+          tableGroup.remove(o); o.geometry.dispose(); if (o.material !== one.material) o.material.dispose();
+          tableParts.splice(tableParts.indexOf(o), 1);
+        }
+      }
     }
   }
 
@@ -453,15 +514,18 @@ function createThree(host, opts) {
   const ballGroup = new THREE.Group();
   scene.add(ballGroup);
   const ballGeoPlain = track(new THREE.SphereGeometry(T.R, 24, 18));
-  const ballGeoDetailed = track(new THREE.SphereGeometry(T.R, 40, 28));
+  // Ball LOD per preset (budget.ballSegs; Plain detail keeps at most 24).
+  const ballGeos = {};
+  const ballGeo = (segs) => ballGeos[segs] || (ballGeos[segs] = track(new THREE.SphereGeometry(T.R, segs, Math.round(segs * 0.7))));
   const blobGeo = track(new THREE.PlaneGeometry(T.R * 3.4, T.R * 3.4));
   let ballViews = {};     // n -> {mesh, ring, blob}
   let legal = new Set();
   const ballTex = {};
   function getBallTex(n) {
-    const k = n + (highContrast ? 'hc' : '');
+    const size = q.budget.ballTex;
+    const k = n + (highContrast ? 'hc' : '') + '-' + size;
     if (!ballTex[k]) {
-      const t = ballTexture(n, highContrast);
+      const t = ballTexture(n, highContrast, size);
       t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
       ballTex[k] = track(t);
     }
@@ -490,9 +554,10 @@ function createThree(host, opts) {
     for (const b of state.balls) {
       const map = getBallTex(b.n);
       const mat = detailed
-        ? new THREE.MeshPhysicalMaterial({ map, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 0.5 })
-        : new THREE.MeshStandardMaterial({ map, roughness: 0.25, metalness: 0.05 });
-      const mesh = new THREE.Mesh(detailed ? ballGeoDetailed : ballGeoPlain, mat);
+        ? lit({ map, roughness: 0.3, metalness: 0, clearcoat: 1, clearcoatRoughness: 0.08, envMapIntensity: 0.5 }, true)
+        : lit({ map, roughness: 0.25, metalness: 0.05 });
+      const segs = detailed ? q.budget.ballSegs : Math.min(24, q.budget.ballSegs);
+      const mesh = new THREE.Mesh(ballGeo(segs), mat);
       mesh.rotation.x = -Math.PI / 2;   // number disc faces up
       mesh.castShadow = q.shadows !== 'off';
       // selection ring (grounded marker for legal targets)
@@ -517,7 +582,7 @@ function createThree(host, opts) {
 
   // ---- cue stick + aim guide ----
   const cueStick = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.011, 1.1, 16),
-    track(new THREE.MeshPhysicalMaterial({ color: 0xffffff, map: track(cueTexture()), roughness: 0.5, clearcoat: 0.4, envMapIntensity: 0.3 })));
+    track(lit({ color: 0xffffff, map: track(cueTexture()), roughness: 0.5, clearcoat: 0.4, envMapIntensity: 0.3 }, true)));
   cueStick.visible = false;
   scene.add(cueStick);
 
@@ -539,33 +604,40 @@ function createThree(host, opts) {
   scene.add(placeGhost);
 
   // ---- particles (pooled bursts) ----
-  const POOL = 48;
+  // One instanced draw for every spark (was a mesh each); the pool size is the preset's burst budget
+  // (scaled by level), fading by shrinking since instances share one material.
+  const POOL_MAX = 256;
   const particles = [];
   const pGeo = track(new THREE.SphereGeometry(0.008, 6, 5));
-  for (let i = 0; i < POOL; i++) {
-    const m = new THREE.Mesh(pGeo, track(new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, toneMapped: false })));
-    m.visible = false;
-    scene.add(m);
-    particles.push({ mesh: m, vx: 0, vy: 0, vz: 0, life: 0 });
+  const pMesh = new THREE.InstancedMesh(pGeo, track(new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false })), POOL_MAX);
+  pMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+  pMesh.frustumCulled = false;
+  pMesh.count = 0;
+  scene.add(pMesh);
+  const pColor = new THREE.Color(), pMat4 = new THREE.Matrix4();
+  for (let i = 0; i < POOL_MAX; i++) {
+    particles.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, life: 0 });
+    pMesh.setColorAt(i, pColor.set(0xfff2b0));
   }
   let pNext = 0;
   function burst(x, z, color, count) {
     if (motionOff() || q.particles === 'off') return;
-    const n = q.particles === 'high' ? count : Math.ceil(count / 2);
+    const pool = Math.min(POOL_MAX, q.budget.burst);
+    const n = Math.min(pool, q.particles === 'high' ? count : Math.ceil(count / 2));
     for (let i = 0; i < n; i++) {
-      const p = particles[pNext++ % POOL];
+      const idx = pNext++ % pool;
+      const p = particles[idx];
       const a = Math.random() * Math.PI * 2, sp = 0.3 + Math.random() * 0.7;
       p.vx = Math.cos(a) * sp; p.vz = Math.sin(a) * sp; p.vy = 0.8 + Math.random() * 0.8;
       p.life = 0.5;
-      p.mesh.position.set(x, TABLE_TOP + T.R, z);
-      p.mesh.material.color.set(color);
-      p.mesh.material.opacity = 1;
-      p.mesh.visible = true;
+      p.x = x; p.y = TABLE_TOP + T.R; p.z = z;
+      pMesh.setColorAt(idx, pColor.set(color));
     }
+    pMesh.instanceColor.needsUpdate = true;
   }
 
   // ---- ambient dust motes drifting in the lamp light ----
-  const MOTES = 48;
+  const MOTES = 288; // pool; the preset's budget.motes are drawn
   const moteGeo = track(new THREE.BufferGeometry());
   const motePos = new Float32Array(MOTES * 3), moteSeed = new Float32Array(MOTES);
   {
@@ -592,7 +664,7 @@ function createThree(host, opts) {
     const on = q.particles !== 'off' && !motionOff();
     motes.visible = on;
     if (!on) return;
-    motes.geometry.setDrawRange(0, q.particles === 'high' ? MOTES : 20);
+    motes.geometry.setDrawRange(0, Math.min(MOTES, q.particles === 'high' ? q.budget.motes : Math.min(20, q.budget.motes)));
     for (let i = 0; i < MOTES; i++) {
       const s = moteSeed[i];
       motePos[i * 3] += Math.sin(clock * 0.3 + s) * 0.004 * dt;
@@ -662,7 +734,7 @@ function createThree(host, opts) {
       c.addPass(new RenderPass(scene, camera));
       if (q.ao !== 'off') {
         const hiAO = q.ao === 'high';
-        const ao = new GTAOPass(scene, camera, pw, ph);
+        const ao = atScale(new GTAOPass(scene, camera, pw, ph), q.budget.aoRes);
         ao.output = GTAOPass.OUTPUT.Default;
         ao.blendIntensity = 0.75;
         ao.updateGtaoMaterial({ radius: 0.12, distanceExponent: 1.4, thickness: 0.06, scale: 1.0, samples: hiAO ? 16 : 8 });
@@ -671,7 +743,7 @@ function createThree(host, opts) {
       }
       if (q.bloom === 'on') {
         // High threshold: only specular glints and bright highlights bloom.
-        c.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.35, 0.92));
+        c.addPass(atScale(new UnrealBloomPass(new THREE.Vector2(w, h), 0.28, 0.35, 0.92), q.budget.bloomRes));
       }
       c.addPass(new OutputPass());
       if (q.grade === 'on') c.addPass(new ShaderPass(GradeShader));
@@ -755,17 +827,25 @@ function createThree(host, opts) {
       }
     }
 
-    // particles
-    for (const p of particles) {
-      if (!p.mesh.visible) continue;
-      p.life -= dt;
-      if (p.life <= 0) { p.mesh.visible = false; continue; }
-      p.vy -= 4 * dt;
-      p.mesh.position.x += p.vx * dt;
-      p.mesh.position.y = Math.max(TABLE_TOP + 0.004, p.mesh.position.y + p.vy * dt);
-      p.mesh.position.z += p.vz * dt;
-      p.mesh.material.opacity = p.life * 2;
+    // particles (one instanced draw; a spark fades by shrinking)
+    let live = 0;
+    const pool = Math.min(POOL_MAX, q.budget.burst);
+    for (let i = 0; i < pool; i++) {
+      const p = particles[i];
+      if (p.life > 0) {
+        p.life -= dt;
+        p.vy -= 4 * dt;
+        p.x += p.vx * dt;
+        p.y = Math.max(TABLE_TOP + 0.004, p.y + p.vy * dt);
+        p.z += p.vz * dt;
+      }
+      const k = p.life > 0 ? Math.min(1, p.life * 2) : 0;
+      pMat4.makeScale(k, k, k).setPosition(p.x, p.y, p.z);
+      pMesh.setMatrixAt(i, pMat4);
+      if (p.life > 0) live = i + 1;
     }
+    pMesh.count = live;
+    pMesh.instanceMatrix.needsUpdate = true;
     updateMotes(dt);
 
     // legal-target rings breathe gently (steady under reduced motion)
@@ -773,6 +853,7 @@ function createThree(host, opts) {
     for (const n in ballViews) {
       const v = ballViews[n];
       v.ring.material.opacity = legal.has(Number(n)) && v.mesh.visible ? pulse : 0;
+      v.ring.visible = v.ring.material.opacity > 0; // a transparent 0-opacity ring still costs a draw
     }
 
     // camera shake (big events only; never under reduced motion)
@@ -893,7 +974,7 @@ function createThree(host, opts) {
     setAim(state, angleMilli) {
       if (state == null || angleMilli == null || !state.balls[0] || state.balls[0].potted) {
         aimLine.visible = false; ghost.visible = false; cueStick.visible = false;
-        for (const pm of pocketMeshes) pm.glow.material.opacity = 0;
+        for (const pm of pocketMeshes) { pm.glow.material.opacity = 0; pm.glow.visible = false; }
         return;
       }
       const cue = state.balls[0];
@@ -920,6 +1001,7 @@ function createThree(host, opts) {
       for (const pm of pocketMeshes) {
         const ddx = pm.pocket.x - ex, ddy = pm.pocket.y - ey;
         pm.glow.material.opacity = (ddx * ddx + ddy * ddy < 0.16) ? 0.85 : 0;
+        pm.glow.visible = pm.glow.material.opacity > 0;
       }
     },
     setLegalTargets(nums) { legal = new Set(nums || []); },
@@ -936,14 +1018,14 @@ function createThree(host, opts) {
     },
     setTheme(t) { theme = t; buildEnvironment(); buildTable(); },
     setGraphics(saved) {
-      const next = Gfx.resolve(saved || {}, detected);
+      const next = Gfx.resolve(saved || {}, detected, level);
       if (JSON.stringify(next) === JSON.stringify(q) && appliedDetail !== null) return;
       q = next;
       applyGraphics();
     },
     graphicsInfo() {
       return {
-        gpu: gpuLabel || 'unknown GPU', detected, resolved: q,
+        gpu: gpuLabel || 'unknown GPU', level, detected, resolved: q,
         pixels: [Math.round(size[0] * pixelRatio), Math.round(size[1] * pixelRatio)],
         summary: Gfx.describe(q, [Math.round(size[0] * pixelRatio), Math.round(size[1] * pixelRatio)]),
         fps: Math.round(fps), adaptiveScale: Math.round(adaptiveScale * 100) / 100, postFailed

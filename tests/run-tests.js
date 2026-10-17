@@ -496,15 +496,40 @@ section('session: phases, undo, lessons, replay envelope', () => {
 // ------------------------------------------------------------- graphics ----
 section('gfx: GPU detection, resolve, overrides, scale clamp', () => {
   const Gfx = require('../js/gfx.js');
-  eq(Gfx.detectPreset('Google SwiftShader'), 'low', 'swiftshader → low');
-  eq(Gfx.detectPreset('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)'), 'low', 'ANGLE swiftshader → low');
-  eq(Gfx.detectPreset('llvmpipe (LLVM 15.0.7, 256 bits)'), 'low', 'llvmpipe → low');
-  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 3070 Direct3D11 vs_5_0 ps_5_0)'), 'high', 'geforce → high');
-  eq(Gfx.detectPreset('Apple M2'), 'high', 'apple M → high');
-  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)'), 'balanced', 'intel igpu → balanced');
-  eq(Gfx.detectPreset(''), 'balanced', 'unknown → balanced');
-  eq(Gfx.detectPreset('Apple M2', true), 'balanced', 'mobile caps Auto at balanced');
-  eq(Gfx.detectPreset('Mali-G78', true), 'balanced', 'mobile mali → balanced');
+  globalThis.StarHermitGpu = require('../gpu-level.js');
+  const desk = { webgl: true, webgl2: true, cores: 8, memoryGb: 8 };
+  const phone = { webgl: true, webgl2: true, mobile: true, cores: 8, memoryGb: 8 };
+  // hardware level → preset: Low 0, Balanced 4, High 10, Ultra 17
+  eq(Gfx.detectPreset('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)', desk), 'low', 'ANGLE swiftshader → low');
+  eq(Gfx.detectLevel('llvmpipe (LLVM 15.0.7, 256 bits)', desk), 0, 'llvmpipe → level 0');
+  eq(Gfx.detectPreset('ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0)', desk), 'low', 'Radeon iGPU → low');
+  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)', desk), 'low', 'Intel UHD → low');
+  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11)', desk), 'balanced', 'Iris Xe → balanced');
+  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce GTX 1070 Direct3D11 vs_5_0 ps_5_0)', desk), 'high', 'GTX 1070 → high');
+  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 Direct3D11 vs_5_0 ps_5_0)', desk), 'ultra', 'RTX 4080 → ultra');
+  eq(Gfx.detectLevel('ANGLE (NVIDIA, NVIDIA GeForce RTX 5090 Direct3D11 vs_5_0 ps_5_0)', desk), 20, 'RTX 5090 → level 20');
+  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 5090 Direct3D11 vs_5_0 ps_5_0)', desk), 'ultra', 'RTX 5090 → ultra');
+  eq(Gfx.detectPreset('', desk), 'balanced', 'unknown → balanced');
+  eq(Gfx.presetForLevel(3), 'low', 'level 3 → low');
+  eq(Gfx.presetForLevel(16), 'high', 'level 16 → high');
+  eq(Gfx.detectPreset('Adreno (TM) 740', phone), 'balanced', 'phone Adreno 740 → balanced');
+  ok(Gfx.detectLevel('Adreno (TM) 740', phone) <= 9, 'phones capped at level 9');
+  eq(Gfx.detectPreset('NVIDIA GeForce RTX 5090', phone), 'balanced', 'mobile caps Auto at balanced');
+  eq(Gfx.detectPreset('Mali-G77', phone), 'low', 'Mali-G77 phone → low');
+  eq(Gfx.detectPreset('SwiftShader', phone), 'low', 'software phone → low');
+  // per-preset budgets: explicit, non-decreasing from Low to Ultra, scaled by level within a preset
+  const order = ['low', 'balanced', 'high', 'ultra'];
+  const keys = ['material', 'ballSegs', 'ballTex', 'mergeTable', 'burst', 'motes', 'bloomRes', 'aoRes'];
+  const mats = ['lambert', 'standard', 'physical'];
+  for (const p of order) for (const k of keys) ok(Gfx.BUDGETS[p][k] != null, `budget ${p}.${k}`);
+  for (let i = 1; i < order.length; i++) {
+    for (const k of keys) if (typeof Gfx.BUDGETS.low[k] === 'number') ok(Gfx.BUDGETS[order[i]][k] >= Gfx.BUDGETS[order[i - 1]][k], `budget ${order[i]}.${k} ≥ ${order[i - 1]}`);
+    ok(mats.indexOf(Gfx.BUDGETS[order[i]].material) >= mats.indexOf(Gfx.BUDGETS[order[i - 1]].material), `material class ${order[i]}`);
+  }
+  eq(JSON.stringify(Gfx.resolve({ preset: 'ultra' }, 'low', 0).budget), JSON.stringify(Gfx.resolve({ preset: 'ultra' }, 'ultra', 17).budget), 'manual Ultra keeps the Ultra floor budget');
+  ok(Gfx.budgetFor('low', 3).motes > Gfx.budgetFor('low', 0).motes, 'counts scale up with the level');
+  ok(Gfx.budgetFor('low', 20).burst <= 4 * Gfx.BUDGETS.low.burst, 'never more than 4×');
+  eq(Gfx.resolve({ preset: 'balanced', render_scale: 1 }, 'low').scale, 0.9, 'balanced renders at 0.9');
 
   const auto = Gfx.resolve({}, 'low');
   ok(auto.auto && auto.preset === 'low', 'empty save = Auto using detected preset');

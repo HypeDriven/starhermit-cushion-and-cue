@@ -201,6 +201,7 @@ function ensureRenderer() {
     graphics: gfxSaved(),
     gpu: probeGpu().gpu,
     detected: probeGpu().detected,
+    level: probeGpu().level,
     highContrast: settings.highContrast,
     reducedMotion: settings.reducedMotion,
     decorSeed: 7,

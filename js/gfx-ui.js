@@ -20,7 +20,7 @@ const EN = {
   tiers: { off: 'Off', on: 'On', low: 'Low', medium: 'Medium', high: 'High', fxaa: 'FXAA', smaa: 'SMAA',
     msaa: 'MSAA', plain: 'Plain', detailed: 'Detailed' },
   adaptive: 'Adaptive resolution', fps: 'Show frame rate',
-  noShadows: 'no shadows', noAA: 'no anti-aliasing', unknownGpu: 'unknown GPU',
+  noShadows: 'no shadows', noAA: 'no anti-aliasing', unknownGpu: 'unknown GPU', level: 'Level {n}',
   postFailed: 'Post-processing is unavailable on this device, so the table is drawn without it.'
 };
 const STRINGS = {
@@ -35,7 +35,7 @@ const STRINGS = {
     tiers: { off: 'No', on: 'Sí', low: 'Bajo', medium: 'Medio', high: 'Alto', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Simple', detailed: 'Detallado' },
     adaptive: 'Resolución adaptativa', fps: 'Mostrar cuadros por segundo',
-    noShadows: 'sin sombras', noAA: 'sin antialiasing', unknownGpu: 'GPU desconocida',
+    noShadows: 'sin sombras', noAA: 'sin antialiasing', unknownGpu: 'GPU desconocida', level: 'Nivel {n}',
     postFailed: 'El posprocesado no está disponible en este dispositivo; la mesa se dibuja sin él.'
   },
   'es-ES': {
@@ -47,7 +47,7 @@ const STRINGS = {
     tiers: { off: 'No', on: 'Sí', low: 'Bajo', medium: 'Medio', high: 'Alto', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Simple', detailed: 'Detallado' },
     adaptive: 'Resolución adaptativa', fps: 'Mostrar fotogramas por segundo',
-    noShadows: 'sin sombras', noAA: 'sin suavizado', unknownGpu: 'GPU desconocida',
+    noShadows: 'sin sombras', noAA: 'sin suavizado', unknownGpu: 'GPU desconocida', level: 'Nivel {n}',
     postFailed: 'El posprocesado no está disponible en este dispositivo; la mesa se dibuja sin él.'
   },
   'de-DE': {
@@ -59,7 +59,7 @@ const STRINGS = {
     tiers: { off: 'Aus', on: 'An', low: 'Niedrig', medium: 'Mittel', high: 'Hoch', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Einfach', detailed: 'Detailliert' },
     adaptive: 'Adaptive Auflösung', fps: 'Bildrate anzeigen',
-    noShadows: 'keine Schatten', noAA: 'keine Kantenglättung', unknownGpu: 'unbekannte GPU',
+    noShadows: 'keine Schatten', noAA: 'keine Kantenglättung', unknownGpu: 'unbekannte GPU', level: 'Stufe {n}',
     postFailed: 'Nachbearbeitung ist auf diesem Gerät nicht verfügbar; der Tisch wird ohne sie dargestellt.'
   },
   'fr-FR': {
@@ -71,7 +71,7 @@ const STRINGS = {
     tiers: { off: 'Non', on: 'Oui', low: 'Bas', medium: 'Moyen', high: 'Élevé', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Simple', detailed: 'Détaillé' },
     adaptive: 'Résolution adaptative', fps: 'Afficher les images par seconde',
-    noShadows: 'sans ombres', noAA: 'sans anticrénelage', unknownGpu: 'GPU inconnu',
+    noShadows: 'sans ombres', noAA: 'sans anticrénelage', unknownGpu: 'GPU inconnu', level: 'Niveau {n}',
     postFailed: 'Le post-traitement n’est pas disponible sur cet appareil ; la table est affichée sans.'
   },
   'fr-CA': {
@@ -83,7 +83,7 @@ const STRINGS = {
     tiers: { off: 'Non', on: 'Oui', low: 'Bas', medium: 'Moyen', high: 'Élevé', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Simple', detailed: 'Détaillé' },
     adaptive: 'Résolution adaptative', fps: 'Afficher la fréquence d’images',
-    noShadows: 'sans ombres', noAA: 'sans anticrénelage', unknownGpu: 'GPU inconnu',
+    noShadows: 'sans ombres', noAA: 'sans anticrénelage', unknownGpu: 'GPU inconnu', level: 'Niveau {n}',
     postFailed: 'Le post-traitement n’est pas offert sur cet appareil; la table est affichée sans.'
   },
   'pt-BR': {
@@ -95,7 +95,7 @@ const STRINGS = {
     tiers: { off: 'Não', on: 'Sim', low: 'Baixo', medium: 'Médio', high: 'Alto', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Simples', detailed: 'Detalhado' },
     adaptive: 'Resolução adaptativa', fps: 'Mostrar taxa de quadros',
-    noShadows: 'sem sombras', noAA: 'sem antisserrilhado', unknownGpu: 'GPU desconhecida',
+    noShadows: 'sem sombras', noAA: 'sem antisserrilhado', unknownGpu: 'GPU desconhecida', level: 'Nível {n}',
     postFailed: 'O pós-processamento não está disponível neste dispositivo; a mesa é desenhada sem ele.'
   },
   'it-IT': {
@@ -107,7 +107,7 @@ const STRINGS = {
     tiers: { off: 'No', on: 'Sì', low: 'Basso', medium: 'Medio', high: 'Alto', fxaa: 'FXAA', smaa: 'SMAA',
       msaa: 'MSAA', plain: 'Semplice', detailed: 'Dettagliato' },
     adaptive: 'Risoluzione adattiva', fps: 'Mostra frequenza fotogrammi',
-    noShadows: 'senza ombre', noAA: 'senza antialiasing', unknownGpu: 'GPU sconosciuta',
+    noShadows: 'senza ombre', noAA: 'senza antialiasing', unknownGpu: 'GPU sconosciuta', level: 'Livello {n}',
     postFailed: 'La post-elaborazione non è disponibile su questo dispositivo; il tavolo viene disegnato senza.'
   }
 };
@@ -151,7 +151,10 @@ export function probeGpu() {
   } catch (e) { /* no WebGL: the 2D table ignores graphics settings */ }
   const mobile = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
     /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent || '');
-  probed = { gpu, detected: Gfx.detectPreset(gpu, mobile) };
+  // StarHermit hardware level → Auto preset (SwiftShader = level 0 → Low; phones cap at Balanced).
+  const system = window.StarHermitGpu ? window.StarHermitGpu.detectSystem() : {};
+  const level = Gfx.detectLevel(gpu, Object.assign({}, system, { mobile: !!system.mobile || mobile }));
+  probed = { gpu, level, detected: Gfx.presetForLevel(level) };
   return probed;
 }
 
@@ -173,7 +176,7 @@ export function mountGraphicsPanel(opts) {
   const body = document.getElementById('gfx-body');
   fs.setAttribute('lang', locale);
   document.getElementById('gfx-legend').textContent = t.legend;
-  const { gpu, detected } = probeGpu();
+  const { gpu, detected, level } = probeGpu();
   const tierName = v => t.tiers[v] || v;
 
   const row = (labelText, control, extraClass) => {
@@ -260,7 +263,7 @@ export function mountGraphicsPanel(opts) {
 
   function refresh() {
     const saved = opts.getSaved();
-    const r = Gfx.resolve(saved, detected);
+    const r = Gfx.resolve(saved, detected, level);
     // Quality labels (Auto shows the detected tier)
     for (const o of qSel.options) {
       o.textContent = o.value === 'auto' ? t.auto.replace('{tier}', t.presets[detected]) : t.presets[o.value];
@@ -278,7 +281,7 @@ export function mountGraphicsPanel(opts) {
     const rend = opts.getRenderer();
     const info = rend && rend.graphicsInfo ? rend.graphicsInfo() : null;
     const gpuText = (info && info.gpu !== 'unknown GPU' ? info.gpu : gpu) || t.unknownGpu;
-    summary.textContent = `${gpuText} · ${describe(r, info && info.pixels)}`;
+    summary.textContent = `${gpuText} · ${(t.level || 'Level {n}').replace('{n}', level)} · ${describe(r, info && info.pixels)}`;
     note.hidden = !(info && info.postFailed);
     document.body.dataset.gfxPreset = r.preset;
   }
