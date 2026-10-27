@@ -11,7 +11,7 @@ This document describes Cushion & Cue as it ships today, a StarHermit engine scr
 | Genre | Turn-based precision sport (pool / cue sports) |
 | Players | Solo clearance; 8-ball vs deterministic house AI or two-player hotseat on one device |
 | Session length | 1–4 minutes per clearance table, 5–10 minutes per 8-ball match |
-| Platforms | A StarHermit engine script game (engine 1.16.4, host API 1.18, `engine.minor=18`): played natively by the StarHermit client and in browsers by the engine's web runtime (desktop and mobile, portrait and landscape); keyboard, gamepad, mouse, touch |
+| Platforms | A StarHermit engine script game (engine 1.17.0, host API 1.19, `engine.minor=18`): played natively by the StarHermit client and in browsers by the engine's web runtime (desktop and mobile, portrait and landscape); keyboard, gamepad, mouse, touch |
 | Rendering | `starhermit:scene` (three-like): the top-down cue-hall scene in the table's rectangle; menus, HUD and controls are `starhermit:ui` (immediate mode, styled from `assets/ui-style.json`) |
 | Backend | `score-script.js` is the StarHermit platform script (leaderboard posting only); `server.js` is a local dev server; the game is fully playable offline |
 
@@ -19,7 +19,7 @@ This document describes Cushion & Cue as it ships today, a StarHermit engine scr
 
 | Path | Role |
 |---|---|
-| `starhermit.txt` | Manifest: `launch=index.html`, `engine.api=1`, `engine.entry=native/main.ts`, `engine.version=1.16.4`, `engine.minor=18`, `engine.capabilities=platform,storage,clipboard`, the actions with keys and gamepad controls, name/description/owner/`server=score-script.js`/cover |
+| `starhermit.txt` | Manifest: `launch=index.html`, `engine.api=1`, `engine.entry=native/main.ts`, `engine.version=1.17.0`, `engine.minor=18`, `engine.capabilities=platform,storage,clipboard`, the actions with keys and gamepad controls, name/description/owner/`server=score-script.js`/cover |
 | `native/main.ts` | Entry module: screen router, session events, results with progression and achievements, aim / power / spin / place input, fixed-step replay and timers, lifecycle |
 | `native/screens.ts` | Every screen, the game HUD, rails, table region, spin pad, pause and results cards, toasts (`starhermit:ui`); layouts by window size |
 | `native/render.ts` | The cue hall on `starhermit:scene`: table, balls, cue, guide, ghosts, sparks, motes, room; camera view offset into the table rectangle; picking |
