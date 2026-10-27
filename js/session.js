@@ -4,7 +4,8 @@
  * Applies validated commands, runs deterministic AI turns (paced, async),
  * keeps an undo stack where mechanics allow, tracks lesson steps, computes
  * score/stars, and builds a replay envelope for every completed game.
- * DOM-free: the UI subscribes via on(event, fn).
+ * DOM-free: the UI subscribes via on(event, fn). AI pacing uses
+ * opts.timers ({ set(fn, ms), clear(h) }; setTimeout by default).
  */
 (function (root, factory) {
   var deps = (typeof module === 'object' && module.exports)
@@ -39,6 +40,12 @@
   function create(cfg, opts) {
     opts = opts || {};
     var lesson = opts.lesson || null;      // CCContent lesson object
+    // AI pacing timers: setTimeout by default; the engine client passes
+    // timers counted in the runtime's fixed steps, so AI turns replay exactly.
+    var timers = opts.timers || {
+      set: function (fn, ms) { return setTimeout(fn, ms); },
+      clear: function (h) { clearTimeout(h); }
+    };
     var ranked = !!opts.ranked;            // daily / ranked: no undo
     var listeners = {};
     var state = null;
@@ -141,17 +148,17 @@
 
     function scheduleAI() {
       // never let two AI turns be queued at once (e.g. resume + ackResolved)
-      if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+      if (aiTimer) { timers.clear(aiTimer); aiTimer = null; }
       if (!isAITurn() || phase === 'results') return;
       emit('ai-thinking', { player: state.players[state.current].id });
-      aiTimer = setTimeout(function () {
+      aiTimer = timers.set(function () {
         aiTimer = null;
         if (!isAITurn() || phase !== 'active') return;
         if (state.ballInHand) {
           var place = Rules.computeAIPlace(state);
           var r1 = applyValidated({ type: 'place', x: place.x, y: place.y }, null, true);
           if (!r1) return;
-          aiTimer = setTimeout(function () {
+          aiTimer = timers.set(function () {
             aiTimer = null;
             if (!isAITurn() || phase !== 'active') return;
             var shot = Rules.computeAIShot(state, state.players[state.current].skill != null
@@ -210,7 +217,7 @@
         undoStack = [];
         lessonStep = 0; lessonDone = false;
         result = null; lastActionId = null; pendingResolve = false;
-        if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+        if (aiTimer) { timers.clear(aiTimer); aiTimer = null; }
         setPhase('active', 'start');
         emit('started', { state: state, cfg: cfg });
         if (lesson) emit('lesson', { done: false, step: 0, total: lesson.steps.length, text: lesson.steps[0].text });
@@ -274,7 +281,7 @@
 
       pause: function (reason) {
         if (phase === 'active' || phase === 'resolving') {
-          if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+          if (aiTimer) { timers.clear(aiTimer); aiTimer = null; }
           setPhase('paused', reason || 'user');
           return true;
         }

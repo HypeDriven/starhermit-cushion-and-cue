@@ -1,10 +1,15 @@
 {
   "name": "cushion-and-cue",
   "private": true,
-  "description": "Cushion & Cue — browser cue-sports game. CommonJS by default: server.js, js/*.js and tests/run-tests.js are UMD/CJS; the browser loads them as classic scripts. Dev-only ESM lives in .mjs files.",
+  "description": "Cushion & Cue — cue sports on the StarHermit engine. CommonJS by default: server.js, js/*.js and tests/run-tests.js are UMD/CJS; the engine loads js/*.js as classic scripts. Dev-only ESM lives in .mjs files.",
   "scripts": {
-    "test": "node tests/run-tests.js && node --test tests/platform.test.mjs tests/i18n.test.mjs",
-    "test:e2e": "node tests/e2e.mjs",
+    "test": "npm run test:unit && npm run test:native",
+    "test:unit": "node tests/run-tests.js && node --test tests/progress.test.mjs tests/i18n.test.mjs",
+    "test:native": "node tests/native.mjs",
+    "test:browser": "node tools/browser-play.mjs .",
+    "package": "node tools/package-web.mjs",
+    "css": "node tools/css.mjs",
+    "plays": "node tools/gen-plays.mjs",
     "validate": "node tools/validate.js",
     "serve": "node server.js"
   },

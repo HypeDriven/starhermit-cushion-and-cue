@@ -1,4 +1,6 @@
-// Key extraction for the i18n coverage test (also handy for listing keys).
+// Key extraction for the i18n coverage test (also handy for listing keys):
+// every T('…') / N('…') in the engine client (native/*.ts) and the content's
+// display fields.
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -10,14 +12,12 @@ const unescape = (s) => s.replace(/\\(['"\\])/g, '$1');
 export function sourceKeys() {
   const keys = new Set();
   const call = /(?<![\w.$])(?:T|N)\(\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")/g;
-  const ternary = /(?<![\w.$])T\([^'"\n()]*?\?\s*'((?:[^'\\\n]|\\.)*)'\s*:\s*'((?:[^'\\\n]|\\.)*)'/g;
-  for (const f of readdirSync(join(ROOT, 'js')).filter((f) => f.endsWith('.js') && f !== 'i18n.js')) {
-    const src = readFileSync(join(ROOT, 'js', f), 'utf8');
+  const ternary = /(?<![\w.$])T\([^'"\n()]*?\?\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")\s*:\s*(?:'((?:[^'\\\n]|\\.)*)'|"((?:[^"\\\n]|\\.)*)")/g;
+  for (const f of readdirSync(join(ROOT, 'native')).filter((f) => f.endsWith('.ts'))) {
+    const src = readFileSync(join(ROOT, 'native', f), 'utf8');
     for (const m of src.matchAll(call)) keys.add(unescape(m[1] ?? m[2]));
-    for (const m of src.matchAll(ternary)) { keys.add(unescape(m[1])); keys.add(unescape(m[2])); }
+    for (const m of src.matchAll(ternary)) { keys.add(unescape(m[1] ?? m[2])); keys.add(unescape(m[3] ?? m[4])); }
   }
-  const html = readFileSync(join(ROOT, 'index.html'), 'utf8');
-  for (const m of html.matchAll(/data-i18n(?:-aria|-title)?="([^"]+)"/g)) keys.add(m[1].replace(/&quot;/g, '"'));
   return keys;
 }
 
@@ -31,8 +31,7 @@ export function contentKeys() {
   C.LESSONS.forEach((l) => { add(l.title, l.outro); l.steps.forEach((s) => add(s.text)); });
   C.PRACTICE.forEach((p) => { add(p.name); (C.practiceConfig(p.id, 1).players || []).forEach((q) => add(q.name)); });
   C.ACHIEVEMENTS.forEach((a) => add(a.name, a.desc));
-  add('Pool table (2D view)'); // js/render.js 2D fallback canvas (data-i18n-aria)
   return keys;
 }
 
-export const ALL = new Set([...sourceKeys(), ...contentKeys()]);
+export const ALL = new Set([...sourceKeys(), ...contentKeys()].filter((k) => /[A-Za-z]/.test(k)));

@@ -1,0 +1,122 @@
+/* Cushion & Cue — the browser client's style sheet (css/style.css), kept for
+ * the engine port and rewritten class-based for `starhermit css` (`npm run
+ * css` converts it into assets/ui-style.json, which native/style.ts
+ * registers): ids, element selectors (h1, h2, h3, dt, dd, li, fieldset,
+ * legend, kbd) and compound selectors (.card-list .card-btn, .setup-facts
+ * div, .breakdown .total-row) became classes of their own; the media
+ * queries, safe-area insets, the ui-scale zoom, the body classes (high
+ * contrast, reduced motion, larger text, left-handed), the graphics panel,
+ * the fps meter, the drawer transition and the toast animation are gone:
+ * the runtime gives interface size, text size, high contrast, reduced
+ * motion and graphics, native/style.ts swaps the high-contrast tokens, and
+ * native/screens.ts picks the layouts (wide ≥ 1024 px, narrow, portrait
+ * phone ≤ 700 px, short landscape ≤ 500 px tall) by window size. */
+* { box-sizing: border-box; }
+:root {
+  --bg: #14100c;
+  --panel: #1f1a14;
+  --panel-2: #2a231b;
+  --ink: #f0e8d8;
+  --ink-dim: #b7ab94;
+  --accent: #e8c46a;
+  --accent-ink: #241a08;
+  --danger: #d4634e;
+  --focus: #ffd970;
+  --border: #3a3125;
+  --border-2: #443a2c;
+  font-size: 16px;
+}
+
+/* ---------- screens ---------- */
+.screen { background: var(--bg); }
+.h1 { font-size: 41.6px; font-weight: 700; color: var(--ink); }
+.amp { font-size: 41.6px; font-weight: 700; color: var(--accent); }
+.h2 { font-size: 24px; font-weight: 700; color: var(--ink); }
+.h3 { font-size: 18px; font-weight: 700; color: var(--accent); }
+.body { color: var(--ink); }
+.muted { color: var(--ink-dim); }
+.small { font-size: 14.4px; color: var(--ink-dim); }
+/* Home hero: key art behind the title; the panel colour keeps the heading readable if the image never arrives. */
+.home-hero {
+  border-radius: 14px; padding: 28px 24px;
+  background: linear-gradient(100deg, rgba(20,16,12,0.94) 0%, rgba(20,16,12,0.72) 45%, rgba(20,16,12,0.25) 100%), url("../assets/key-art.webp") center right / cover, var(--panel);
+  border: 1px solid #3a3125;
+}
+.home-hero-plain { border-radius: 14px; padding: 28px 24px; background: var(--panel); border: 1px solid #3a3125; }
+.home-hero-compact { padding: 20px 16px; }
+.tagline { color: var(--ink-dim); }
+
+/* ---------- buttons ---------- */
+.btn {
+  min-height: 44px; min-width: 44px; padding: 10px 18px;
+  background: var(--panel-2); color: var(--ink);
+  border: 1px solid #443a2c; border-radius: 10px; text-align: center;
+}
+.btn:hover { background: #352c20; }
+.btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.btn:disabled { opacity: 0.45; }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+.btn-primary:hover { background: #f2d385; }
+.btn-ghost { background: transparent; }
+.btn-ghost:hover { background: #352c20; }
+.btn-big { font-size: 18.4px; padding: 14px 26px; }
+.btn-small { min-height: 44px; padding: 6px 10px; font-size: 14.4px; }
+.kbd { background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.25); border-radius: 4px; padding: 0 5px; font-size: 12.8px; }
+
+/* ---------- card lists ---------- */
+.card-btn {
+  min-height: 44px; padding: 12px 14px; text-align: left;
+  background: var(--panel); color: var(--ink);
+  border: 1px solid #3a3125; border-radius: 10px;
+}
+.card-btn:hover { background: var(--panel-2); }
+.card-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.card-btn:disabled { opacity: 0.45; }
+.card-name { font-weight: 600; color: var(--ink); }
+.card-sub { font-size: 14.4px; color: var(--ink-dim); }
+
+/* ---------- setup ---------- */
+.setup-fact { background: var(--panel); padding: 10px 14px; border-radius: 8px; }
+.setup-dt { font-weight: 600; color: var(--ink); }
+.setup-dd { color: var(--ink); }
+.setup-intro { color: var(--ink-dim); }
+
+/* ---------- settings ---------- */
+.fieldset { border: 1px solid #3a3125; border-radius: 10px; padding: 14px; }
+.legend { color: var(--accent); }
+.field { min-height: 44px; padding: 6px 10px; background: var(--panel); color: var(--ink); border: 1px solid #443a2c; border-radius: 8px; }
+
+/* ---------- help ---------- */
+.help-card { background: var(--panel); border: 1px solid #3a3125; border-radius: 10px; padding: 14px; }
+
+/* ---------- game screen ---------- */
+.game-topbar { background: var(--panel); border-bottom: 1px solid #3a3125; padding: 8px 12px; }
+.hud-objective { font-weight: 600; color: var(--ink); }
+.hud-player { color: var(--accent); }
+.hud-score { color: var(--ink); }
+.rail { background: var(--panel); border: 1px solid #3a3125; border-radius: 10px; padding: 12px; }
+.rail-heading { font-size: 13.6px; font-weight: 600; color: var(--ink-dim); }
+.lesson-banner { background: var(--panel-2); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 6px; }
+.control-label { font-weight: 600; color: var(--ink); }
+.table-host { border-radius: 10px; }
+.drawer { background: var(--panel); border: 1px solid #3a3125; padding: 12px; }
+
+/* ---------- overlays ---------- */
+.overlay { background: rgba(8, 6, 4, 0.78); }
+.overlay-card { background: var(--panel); border: 1px solid #4a3f2e; border-radius: 14px; padding: 24px; }
+.res-art { border-radius: 10px; }
+.breakdown-row { border-bottom: 1px solid #3a3125; padding: 4px 0; }
+.breakdown-dt { color: var(--ink-dim); }
+.breakdown-dd { color: var(--ink); }
+.total-row { font-weight: 700; font-size: 17.6px; color: var(--ink); }
+.achievement { color: var(--accent); }
+
+/* ---------- toasts ---------- */
+.toast { background: var(--panel-2); border: 1px solid var(--accent); border-radius: 8px; padding: 10px 18px; }
+.toast-text { font-size: 15.2px; color: var(--ink); }
+
+/* ---------- button faces (a label beside a key badge) ---------- */
+.btn-label { color: var(--ink); }
+.btn-label-primary { color: var(--accent-ink); font-weight: 600; }
+.btn-label-big { font-size: 18.4px; }
+.btn-label-small { font-size: 14.4px; }

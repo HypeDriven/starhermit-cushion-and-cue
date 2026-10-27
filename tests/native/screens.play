@@ -1,0 +1,112 @@
+# The menus and the game screen's controls by pointer and keys: the player
+# name typed, Journey (stage 2 locked), Learn, Practice (a setup and back),
+# Challenges, Help, Settings (the theme changed, left-handed toggled), the
+# Daily setup started; in the game: Hint, Shoot by its button, Skip replay,
+# the objective drawer, Pause (P) → Settings → Back → Restart, Escape
+# pauses, Leave game.
+until 300 Play
+frames 60
+save home
+click Guest
+frames 10
+type {End}{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}Ann{Enter}
+frames 10
+click Journey 0/36
+frames 10
+expect Ann
+click Journey
+until 60 Thirty-six stages
+frames 20
+expect 2. Open Table, Locked
+save journey
+click Back
+until 60 Daily Challenge
+frames 10
+click Learn
+until 60 Six short lessons
+frames 10
+click Back
+until 60 Daily Challenge
+frames 10
+click Practice
+until 60 Unranked
+frames 10
+click Solo — Warm-up
+until 60 Expected duration
+frames 10
+expect within 8 shots
+save practice-setup
+click Back
+until 60 Daily Challenge
+frames 10
+click Challenges
+until 60 Fixed seeds
+frames 10
+save challenges
+click Back
+until 60 Daily Challenge
+frames 10
+click Help
+until 60 How to play
+frames 20
+save help
+click Back
+until 60 Daily Challenge
+frames 10
+click Settings
+until 60 Left-handed controls
+frames 10
+click Tournament Green
+frames 20
+click Midnight Blue
+frames 10
+expect Midnight Blue
+click Left-handed controls
+frames 10
+save settings
+click Back
+until 60 Daily Challenge
+frames 10
+expect Player name
+click Daily Challenge
+until 60 Yes (daily ranking)
+frames 10
+save daily
+click Start
+frames 5
+until 120 Shots left
+frames 30
+save daily-game
+click Hint
+frames 10
+click Shoot
+frames 20
+save replaying
+click Skip replay
+frames 20
+click Objective
+frames 20
+save drawer
+click Close
+frames 10
+key KeyP 1
+until 60 Leave game
+frames 10
+save pause
+click Settings
+until 60 Left-handed controls
+frames 10
+click Back
+until 60 Leave game
+frames 10
+click Restart
+frames 10
+until 60 Shots left
+frames 30
+key Escape 1
+until 60 Leave game
+frames 10
+click Leave game
+until 60 Daily Challenge
+frames 10
+save home-again

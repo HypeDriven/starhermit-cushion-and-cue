@@ -1,7 +1,7 @@
 /* Cushion & Cue — zero-dependency test runner. Run: node tests/run-tests.js
  * Covers rng, rules (legality, fouls, endings, serialization, replay
- * determinism, AI legality) and content validation (legality, reachability,
- * bounded duration). Exits nonzero on the first failing section's summary.
+ * determinism, AI legality), content validation (legality, reachability,
+ * bounded duration) and the session (phases, undo, lessons, replay). Exits nonzero on the first failing section's summary.
  */
 'use strict';
 
@@ -491,75 +491,6 @@ section('session: phases, undo, lessons, replay envelope', () => {
   daily.command({ type: 'shoot', angle: 100, power: 300 }, 'd1');
   daily.ackResolved();
   ok(!daily.canUndo(), 'daily/ranked: undo disabled');
-});
-
-// ------------------------------------------------------------- graphics ----
-section('gfx: GPU detection, resolve, overrides, scale clamp', () => {
-  const Gfx = require('../js/gfx.js');
-  globalThis.StarHermitGpu = require('../gpu-level.js');
-  const desk = { webgl: true, webgl2: true, cores: 8, memoryGb: 8 };
-  const phone = { webgl: true, webgl2: true, mobile: true, cores: 8, memoryGb: 8 };
-  // hardware level → preset: Low 0, Balanced 4, High 10, Ultra 17
-  eq(Gfx.detectPreset('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero)), SwiftShader driver)', desk), 'low', 'ANGLE swiftshader → low');
-  eq(Gfx.detectLevel('llvmpipe (LLVM 15.0.7, 256 bits)', desk), 0, 'llvmpipe → level 0');
-  eq(Gfx.detectPreset('ANGLE (AMD, AMD Radeon(TM) Graphics Direct3D11 vs_5_0 ps_5_0)', desk), 'low', 'Radeon iGPU → low');
-  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) UHD Graphics 620 Direct3D11)', desk), 'low', 'Intel UHD → low');
-  eq(Gfx.detectPreset('ANGLE (Intel, Intel(R) Iris(R) Xe Graphics Direct3D11)', desk), 'balanced', 'Iris Xe → balanced');
-  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce GTX 1070 Direct3D11 vs_5_0 ps_5_0)', desk), 'high', 'GTX 1070 → high');
-  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 4080 Direct3D11 vs_5_0 ps_5_0)', desk), 'ultra', 'RTX 4080 → ultra');
-  eq(Gfx.detectLevel('ANGLE (NVIDIA, NVIDIA GeForce RTX 5090 Direct3D11 vs_5_0 ps_5_0)', desk), 20, 'RTX 5090 → level 20');
-  eq(Gfx.detectPreset('ANGLE (NVIDIA, NVIDIA GeForce RTX 5090 Direct3D11 vs_5_0 ps_5_0)', desk), 'ultra', 'RTX 5090 → ultra');
-  eq(Gfx.detectPreset('', desk), 'balanced', 'unknown → balanced');
-  eq(Gfx.presetForLevel(3), 'low', 'level 3 → low');
-  eq(Gfx.presetForLevel(16), 'high', 'level 16 → high');
-  eq(Gfx.detectPreset('Adreno (TM) 740', phone), 'balanced', 'phone Adreno 740 → balanced');
-  ok(Gfx.detectLevel('Adreno (TM) 740', phone) <= 9, 'phones capped at level 9');
-  eq(Gfx.detectPreset('NVIDIA GeForce RTX 5090', phone), 'balanced', 'mobile caps Auto at balanced');
-  eq(Gfx.detectPreset('Mali-G77', phone), 'low', 'Mali-G77 phone → low');
-  eq(Gfx.detectPreset('SwiftShader', phone), 'low', 'software phone → low');
-  // per-preset budgets: explicit, non-decreasing from Low to Ultra, scaled by level within a preset
-  const order = ['low', 'balanced', 'high', 'ultra'];
-  const keys = ['material', 'ballSegs', 'ballTex', 'mergeTable', 'burst', 'motes', 'bloomRes', 'aoRes'];
-  const mats = ['lambert', 'standard', 'physical'];
-  for (const p of order) for (const k of keys) ok(Gfx.BUDGETS[p][k] != null, `budget ${p}.${k}`);
-  for (let i = 1; i < order.length; i++) {
-    for (const k of keys) if (typeof Gfx.BUDGETS.low[k] === 'number') ok(Gfx.BUDGETS[order[i]][k] >= Gfx.BUDGETS[order[i - 1]][k], `budget ${order[i]}.${k} ≥ ${order[i - 1]}`);
-    ok(mats.indexOf(Gfx.BUDGETS[order[i]].material) >= mats.indexOf(Gfx.BUDGETS[order[i - 1]].material), `material class ${order[i]}`);
-  }
-  eq(JSON.stringify(Gfx.resolve({ preset: 'ultra' }, 'low', 0).budget), JSON.stringify(Gfx.resolve({ preset: 'ultra' }, 'ultra', 17).budget), 'manual Ultra keeps the Ultra floor budget');
-  ok(Gfx.budgetFor('low', 3).motes > Gfx.budgetFor('low', 0).motes, 'counts scale up with the level');
-  ok(Gfx.budgetFor('low', 20).burst <= 4 * Gfx.BUDGETS.low.burst, 'never more than 4×');
-  eq(Gfx.resolve({ preset: 'balanced', render_scale: 1 }, 'low').scale, 0.9, 'balanced renders at 0.9');
-
-  const auto = Gfx.resolve({}, 'low');
-  ok(auto.auto && auto.preset === 'low', 'empty save = Auto using detected preset');
-  eq(auto.post, false, 'low needs no post chain');
-  eq(auto.shadows, 'off', 'low: no shadows');
-  eq(auto.particles, 'off', 'low: no particles');
-  eq(auto.cap, 1, 'low caps pixel ratio at 1');
-  const hi = Gfx.resolve({ preset: 'high' }, 'low');
-  ok(!hi.auto && hi.preset === 'high' && hi.post, 'explicit high preset');
-  eq(hi.shadows, 'medium', 'high: medium shadows');
-  eq(Gfx.resolve({ preset: 'high', bloom: 'off' }, 'low').bloom, 'off', 'override wins over preset');
-  eq(Gfx.resolve({ preset: 'high', bloom: 'bogus' }, 'low').bloom, 'on', 'invalid override ignored');
-  eq(Gfx.resolve({ preset: 'nope' }, 'balanced').preset, 'balanced', 'unknown preset → Auto');
-  eq(Gfx.resolve({ render_scale: 5 }, 'high').renderScale, 2, 'render scale clamped to 200%');
-  eq(Gfx.resolve({ render_scale: 0.1 }, 'high').renderScale, 0.5, 'render scale clamped to 50%');
-  eq(Gfx.resolve({ preset: 'ultra', render_scale: 1 }, 'low').scale, 1.25, 'ultra supersamples');
-  eq(Gfx.resolve({}, 'low').adaptive, true, 'adaptive defaults on');
-  eq(Gfx.resolve({}, 'low').showFps, false, 'fps readout defaults off');
-  eq(Gfx.resolve({ preset: 'low', ao: 'on' }, 'low').post, true, 'an AO override turns the post chain on');
-
-  const cleared = Gfx.choosePreset({ preset: 'high', bloom: 'off', shadows: 'high', render_scale: 1.5, adaptive: false }, 'ultra');
-  eq(cleared.preset, 'ultra', 'choosePreset sets preset');
-  ok(!('bloom' in cleared) && !('shadows' in cleared), 'choosing a preset clears overrides');
-  ok(cleared.render_scale === 1.5 && cleared.adaptive === false, 'scale and adaptive survive preset change');
-  eq(Gfx.presetTier('balanced', 'antialias'), 'fxaa', 'presetTier');
-  ok(/no shadows/.test(Gfx.describe(Gfx.resolve({}, 'low'), [800, 600])) && /800×600 px/.test(Gfx.describe(auto, [800, 600])), 'describe summary');
-  for (const p of Gfx.PRESETS) {
-    const r = Gfx.resolve({ preset: p }, 'low');
-    for (const cat in Gfx.CATEGORIES) ok(Gfx.CATEGORIES[cat].includes(r[cat]), `preset ${p} has a valid ${cat} tier`);
-  }
 });
 
 // ------------------------------------------------------------- summary -----
