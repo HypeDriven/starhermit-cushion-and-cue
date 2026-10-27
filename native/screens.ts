@@ -62,7 +62,13 @@ function para(text: string, width: number, cls: string | readonly string[] = "bo
 }
 interface Btn { id: string; text: string; style?: string[]; disabled?: boolean; act: () => void; kbd?: string; silent?: boolean }
 const PLAIN = ["btn"];
-const buttonWidth = (b: Btn): number => textWidth(b.text, b.style ?? PLAIN, "button") + 4 + (b.kbd ? textWidth(b.kbd, "kbd") + 22 : 0);
+/** A button's width: a plain one as the button measures it; with a key badge, its face (label, 6 px, badge with its 5 px padding and border) inside the button's padding and border. */
+function buttonWidth(b: Btn): number {
+  const style = b.style ?? PLAIN;
+  if (!b.kbd) return textWidth(b.text, style, "button") + 4;
+  const pad = style.includes("btn-small") ? 10 : style.includes("btn-big") ? 26 : 18;
+  return textWidth(b.text, faceStyle(style)) + 6 + textWidth(b.kbd, "kbd") + 12 + pad * 2 + 2 + 4;
+}
 /** The text classes of a button's face (its label beside a key badge, or a wrapped label). */
 function faceStyle(style: readonly string[]): string[] {
   return [style.includes("btn-primary") ? "btn-label-primary" : "btn-label", ...(style.includes("btn-big") ? ["btn-label-big"] : style.includes("btn-small") ? ["btn-label-small"] : [])];
@@ -469,7 +475,7 @@ function helpScreen(L: Layout): void {
         T("Drag on the table to aim; tap a free spot to place the cue ball."),
         `Tab ${T("reaches every control.")}`,
         T("Gamepad: {aim} aim and power, {shoot} shoot or place, {hint} hint, {undo} undo, {skip} skip replay, {pause} pause.", {
-          aim: padFor("aim_left").split(" / ")[0] ?? "—", shoot: padFor("shoot"), hint: padFor("hint"), undo: padFor("undo"), skip: padFor("skip"), pause: padFor("pause"),
+          aim: ["aim_left", "aim_right", "power_up", "power_down"].map((a) => padFor(a).split(" / ")[0]).join("/"), shoot: padFor("shoot"), hint: padFor("hint"), undo: padFor("undo"), skip: padFor("skip"), pause: padFor("pause"),
         }),
       ]],
       [T("Clearance"), [T("Pot every ball before your shots run out. Where the black is marked \"last\", potting it early loses the round.")]],
@@ -790,11 +796,13 @@ function actionRail(L: Layout, state: State, r: Rect): void {
       lastHeight.set("rail-foot", fr.height / L.sc);
     }, { style: "rail", width: r.w, height: r.h, spacing: 10 });
   } else {
-    const tr = ui.place("rail-right", { anchor: "top-start", x: r.x, y: r.y }, () => {
-      content();
-      shootRow(w);
-    }, { style: "rail", width: r.w, spacing: 10 });
-    lastHeight.set("tray", tr.height / L.sc);
+    // below the table: the tray (on a portrait phone it fills the rest of the screen, Shoot at the bottom under the thumb)
+    ui.place("rail-right", { anchor: "top-start", x: r.x, y: r.y }, () => {
+      const cr = ui.column("tray-body", () => content(), { width: w, spacing: 10 });
+      if (L.phone) ui.spacer();
+      const fr = ui.column("tray-foot", () => shootRow(w), { width: w, spacing: 8 });
+      lastHeight.set("tray", (cr.height + fr.height) / L.sc + 24 + 10);
+    }, { style: "rail", width: r.w, spacing: 10, ...(L.phone ? { height: Math.max(r.h, (lastHeight.get("tray") ?? 0)) } : {}) });
   }
 }
 
