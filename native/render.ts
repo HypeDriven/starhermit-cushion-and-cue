@@ -293,7 +293,7 @@ try {
     t.anisotropy = 4;
     clothTex = t;
     for (const m of clothMats) m.map = t;
-  }, (e) => console.warn(`cloth: ${e.message}`));
+  }, (e: unknown) => console.warn(`cloth: ${e instanceof Error ? e.message : String(e)}`));
 } catch (e) { console.warn(`cloth: ${String(e)}`); }
 function feltMaterial(color: number, detailed: boolean): Material {
   const m = detailed ? lit({ color, roughness: 0.9, envMapIntensity: 0.12, map: clothTex }, true) : lit({ color, roughness: 0.92, map: clothTex });
