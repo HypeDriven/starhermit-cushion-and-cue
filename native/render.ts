@@ -194,19 +194,29 @@ interface LitParams {
 }
 /** Lit material in the level's budget class: Lambert on Low, Standard on Balanced, Physical (clear-coat) on
  * High/Ultra where `physical` asks for it. Felt sheen has no counterpart on the engine (dropped). */
+/** r160's scene.environment was scaled by each material's envMapIntensity; three r163+ (the engine) applies
+ * scene.environmentIntensity instead, so every standard material takes the room as its own envMap. */
+function envOf(): Texture | null { return look?.reflections ? ensureEnv() : null; }
+function bindEnv(): void {
+  const env = envOf();
+  scene.traverse((o) => {
+    const m = (o as Mesh).material as MeshStandardMaterial | MeshStandardMaterial[] | undefined;
+    for (const x of Array.isArray(m) ? m : m ? [m] : []) if ("envMapIntensity" in x && x.envMap !== env) x.envMap = env;
+  });
+}
 function lit(p: LitParams, physical = false): Material {
   const kind = look?.budget.material ?? "standard";
   const base = { color: p.color ?? 0xffffff, map: p.map ?? null, ...(p.transparent ? { transparent: true, opacity: p.opacity ?? 1 } : {}) };
   if (kind === "lambert") return new MeshLambertMaterial(base);
-  const std = { ...base, roughness: p.roughness ?? 1, metalness: p.metalness ?? 0, envMapIntensity: p.envMapIntensity ?? 1 };
+  const std = { ...base, roughness: p.roughness ?? 1, metalness: p.metalness ?? 0, envMapIntensity: p.envMapIntensity ?? 1, envMap: envOf() };
   if (kind === "physical" && physical) return new MeshPhysicalMaterial({ ...std, clearcoat: p.clearcoat ?? 0, clearcoatRoughness: p.clearcoatRoughness ?? 0 });
   return new MeshStandardMaterial(std);
 }
 
 // ---------------------------------------------------------------- lights
-const hemi = new HemisphereLight(0xfff1dc, 0x1a1410, 0.9 / PI);
+const hemi = new HemisphereLight(0xfff1dc, 0x1a1410, 0.9);
 scene.add(hemi);
-const key = new DirectionalLight(0xfff4e2, 1.5 / PI);
+const key = new DirectionalLight(0xfff4e2, 1.5);
 key.position.set(0.35, 3, 0.55);
 scene.add(key, key.target);
 {
@@ -215,7 +225,7 @@ scene.add(key, key.target);
   key.shadow.bias = -0.0004;
   key.shadow.normalBias = 0.004;
 }
-const pool = new SpotLight(0xffe2b0, 4.2 / PI, 0, 0.8, 0.8, 2);
+const pool = new SpotLight(0xffe2b0, 4.2, 0, 0.8, 0.8, 2);
 pool.position.set(0, 2.3, 0);
 scene.add(pool, pool.target);
 let envTex: Texture | null = null;
@@ -598,10 +608,11 @@ function applyGraphics(): void {
   renderer.shadowMap.enabled = shadows;
   key.castShadow = shadows;
   if (shadows) key.shadow.mapSize = look.shadows;
-  scene.environment = look.reflections ? ensureEnv() : null;
+  scene.environment = null; // per-material envMaps (bindEnv)
+  bindEnv();
   pool.visible = look.detailed;
-  hemi.intensity = (look.detailed ? 0.4 : 1.0) / PI;
-  key.intensity = (look.detailed ? 1.0 : 1.6) / PI;
+  hemi.intensity = look.detailed ? 0.4 : 1.0;
+  key.intensity = look.detailed ? 1.0 : 1.6;
   renderer.ao = look.ao === "off" ? null : {
     blendIntensity: 0.75, radius: 0.12, distanceExponent: 1.4, thickness: 0.06, scale: 1.0, samples: look.ao === "high" ? 16 : 8, resolution: look.budget.aoRes,
     denoise: { lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: look.ao === "high" ? 6 : 4, rings: 2, samples: look.ao === "high" ? 16 : 8, radiusExponent: 2 },
@@ -621,6 +632,7 @@ function applyGraphics(): void {
   const s = lastState;
   lastState = null;
   setSnapshot(s);
+  bindEnv();
 }
 export function applyLook(next: Look): void {
   if (look && JSON.stringify(look) === JSON.stringify(next)) return;
@@ -725,6 +737,8 @@ export function setView(rect: { x: number; y: number; w: number; h: number } | n
   view = { ...rect };
   windowSize = { w: winW, h: winH };
   fitCamera(rect.w / rect.h);
+  camera.aspect = rect.w / rect.h;
+  camera.updateProjectionMatrix();
   camera.setViewOffset(rect.w, rect.h, -rect.x, -rect.y, winW, winH);
 }
 // Pull the camera back until the whole table (cushions included) is inside
