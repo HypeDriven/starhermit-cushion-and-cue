@@ -618,12 +618,13 @@ function applyGraphics(): void {
     denoise: { lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: look.ao === "high" ? 6 : 4, rings: 2, samples: look.ao === "high" ? 16 : 8, radiusExponent: 2 },
   };
   // High threshold: only specular glints and bright highlights bloom.
-  renderer.bloom = look.bloom ? { strength: 0.28, radius: 0.35, threshold: 0.92, resolution: look.budget.bloomRes } : null;
+  // minor 29 bloom follows r185's UnrealBloomPass; this page ran three r160, so the strength is squared (0.28² ≈ 0.078) to keep its look.
+  renderer.bloom = look.bloom ? { strength: 0.078, radius: 0.35, threshold: 0.92, resolution: look.budget.bloomRes } : null;
   // The browser build's grade pass: a gentle S-curve, +10 % saturation, warm highlights / cool shadows, the 0.3 vignette.
   renderer.grade = look.grade ? {
-    space: "display", contrast: 0.22, saturation: 1.1,
+    space: "display", contrast: 0.11, saturation: 1.1, // contrast: the page's 0.22 S-curve blend as a display-space slope (c / 2)
     shadows: [0.97, 0.98, 1.04], highlights: [1.04, 1.0, 0.95], split: [0.15, 0.8],
-    vignette: { amount: 0.3, inner: 0.32, outer: 0.8 },
+    vignette: { amount: 0.3, inner: 0.32, outer: 0.8, scale: [1, 0.85] },
   } : null;
   renderer.antialias = look.antialias;
   cueStick.material = cueMaterial();
