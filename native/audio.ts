@@ -12,8 +12,10 @@
 // "interface", and the room tone at the ambience bus's 0.5 × 0.7. The
 // WebAudio synthesis the browser build played while a clip loaded is not
 // ported (a live synthesis graph makes clip loads fail on the engine's web
-// runtime): a clip not loaded yet is silent. Clips load once the mixer runs
-// (natively at once, in a browser after the first press), one at a time.
+// runtime): a clip not loaded yet is silent. Every clip loads at once in
+// onStart (the engine hands each loaded clip to the mixer, natively and on
+// the web); the room tone starts once the mixer runs (in a browser, after
+// the first press).
 import { files } from "starhermit:engine";
 import { context, loadClip, play as playClip, type AudioClip, type Sound } from "starhermit:audio";
 import { RNG } from "./classic.ts";
@@ -26,9 +28,7 @@ const EFFECTS = 0.8;
 const AMBIENCE = 0.5 * 0.7;
 const byEvent = new Map<string, string[]>();
 const clips = new Map<string, AudioClip>();
-const queue: string[] = [];
-let loading = false;
-let wanted = false;
+let started = false;
 let avRng = RNG.derive(0xc0ffee, RNG.STREAM_AV);
 let ambience: Sound | null = null;
 let ambienceOn = false;
@@ -44,18 +44,12 @@ function readManifest(): void {
     }
   } catch (e) { console.warn(`sfx manifest: ${String(e)}`); }
 }
-function load(name: string): void { if (!queue.includes(name) && !clips.has(name)) queue.push(name); }
-function pump(): void {
-  if (loading || !queue.length) return;
-  const name = queue.shift()!;
-  loading = true;
-  loadClip(`sfx/${name}.opus`).then((c) => { clips.set(name, c); loading = false; }, (e: unknown) => { console.warn(`sfx ${name}: ${String(e)}`); loading = false; });
-}
-
-/** Asks for the clips (the room tone first); they load once the mixer runs. */
+/** Reads the manifest and loads every clip at once (onStart); a cue whose clip is still loading is silent. */
 export function init(): void {
   readManifest();
-  wanted = true;
+  for (const name of new Set([...byEvent.values()].flat())) {
+    loadClip(`sfx/${name}.opus`).then((c) => { clips.set(name, c); }, (e: unknown) => console.warn(`sfx ${name}: ${String(e)}`));
+  }
 }
 /** A new game: the variant stream restarts from its seed (js/audio.js reseed). */
 export function reseed(seed: number): void { avRng = RNG.derive(seed >>> 0, RNG.STREAM_AV); }
@@ -68,22 +62,16 @@ export function cue(event: Cue): void {
   const clip = clips.get(name);
   if (!clip) return;
   try { playClip(clip, { bus: event === "uiClick" ? "interface" : "effects", gain: EFFECTS }); }
-  catch { clips.delete(name); load(name); } // a clip the mixer lost: load it again
+  catch { /* the mixer is full this frame: skip it */ }
 }
 
 /** The room tone: on from the first gesture (as the browser build's unlock), stopped while hidden. */
 export function setAmbience(on: boolean): void { ambienceOn = on; }
 
-/** Each frame: queue the clips once the mixer runs (one load at a time), keep the room tone going. */
+/** Each frame: once the mixer runs, start and keep the room tone going. */
 export function update(): void {
   if (context.state !== "running") return;
-  if (wanted) {
-    wanted = false;
-    for (const n of byEvent.get("ambience") ?? []) load(n);
-    for (const [ev, names] of byEvent) if (ev !== "ambience") for (const n of names) load(n);
-    ambienceOn = true;
-  }
-  pump();
+  if (!started) { started = true; ambienceOn = true; }
   const tone = (byEvent.get("ambience") ?? [])[0];
   const clip = tone ? clips.get(tone) : undefined;
   try {

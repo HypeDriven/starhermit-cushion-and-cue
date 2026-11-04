@@ -18,8 +18,8 @@
 // reached, and the session's AI pacing (750 ms) is counted in the same steps
 // (session timers), so a session replays identically and play scripts are
 // exact. Held aim and power keys repeat on fixed steps too.
-import { frame, onFixedUpdate, onPreferencesChange, onQuit, onRender, onResume, onStart, onSuspend, onUpdate, preferences, setFixedRate } from "starhermit:engine";
-import { isDown, isKeyDown, onAction } from "starhermit:input";
+import { frame, levelSettings, onFixedUpdate, onPreferencesChange, onQuit, onRender, onResume, onStart, onSuspend, onUpdate, preferences, setFixedRate } from "starhermit:engine";
+import { isDown, onAction } from "starhermit:input";
 import * as ui from "starhermit:ui";
 import { onSessionEnded } from "starhermit:platform";
 import * as audio from "./audio.ts";
@@ -500,7 +500,8 @@ export function mirrorText(): string {
 // ------------------------------------------------------------------ actions
 /** Labels of the widgets that keep the arrows (screens.ts sets them each frame). */
 export const keepsArrows = { power: "", spin: "", table: "" };
-const shift = (): boolean => isKeyDown("ShiftLeft") || isKeyDown("ShiftRight");
+/** Fine aim held (Shift by default; players rebind it in Options). */
+const shift = (): boolean => isDown("fine_aim");
 const REPEAT_DELAY = 24, REPEAT_EVERY = 2; // 0.4 s, then 30 a second
 const held: Record<string, number> = {};
 function arrowAction(action: string): boolean {
@@ -559,10 +560,10 @@ function repeatHeld(): void {
 let lookKey = "";
 function applyLook(): void {
   const f = frame();
-  const key = `${f.quality}:${f.levelIndex}`;
+  const key = f.level;
   if (key === lookKey) return;
   lookKey = key;
-  render.applyLook(lookFor(f.quality, f.levelIndex));
+  render.applyLook(lookFor(levelSettings(f.level)));
 }
 function applyPrefs(): void {
   const p = preferences();

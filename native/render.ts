@@ -302,7 +302,7 @@ try {
     t.wrapS = t.wrapT = MirroredRepeatWrapping;
     t.repeat.set(8, 4);
     t.colorSpace = SRGBColorSpace;
-    t.anisotropy = 4;
+    t.anisotropy = look?.anisotropy ?? 4;
     clothTex = t;
     for (const m of clothMats) m.map = t;
   }, (e: unknown) => console.warn(`cloth: ${e instanceof Error ? e.message : String(e)}`));
@@ -458,7 +458,7 @@ function getBallTex(n: number): Texture {
   const size = look?.budget.ballTex ?? 512;
   const k = `${n}${highContrast ? "hc" : ""}-${size}`;
   let t = ballTex.get(k);
-  if (!t) { t = ballTexture(n, highContrast, size); t.anisotropy = 4; ballTex.set(k, t); }
+  if (!t) { t = ballTexture(n, highContrast, size); t.anisotropy = look?.anisotropy ?? 4; ballTex.set(k, t); }
   return t;
 }
 function placeBall(v: BallView, x: number, y: number, visible: boolean): void {
@@ -609,19 +609,21 @@ function applyGraphics(): void {
   const shadows = look.shadows > 0;
   renderer.shadowMap.enabled = shadows;
   key.castShadow = shadows;
-  if (shadows) key.shadow.mapSize = look.shadows;
+  if (shadows) key.shadow.mapSize = look.shadows; // the level's size: the runtime keeps a game's mapSize
   scene.environment = null; // per-material envMaps (bindEnv)
   bindEnv();
   pool.visible = look.detailed;
   hemi.intensity = look.detailed ? 0.4 : 1.0;
   key.intensity = look.detailed ? 1.0 : 1.6;
-  renderer.ao = look.ao === "off" ? null : {
-    blendIntensity: 0.75, radius: 0.12, distanceExponent: 1.4, thickness: 0.06, scale: 1.0, samples: look.ao === "high" ? 16 : 8, resolution: look.budget.aoRes,
-    denoise: { lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: look.ao === "high" ? 6 : 4, rings: 2, samples: look.ao === "high" ? 16 : 8, radiusExponent: 2 },
+  // The level's AO (resolution, samples); full resolution is the engine's "high" (the wider denoise).
+  const ao = look.ao, full = !!ao && ao.resolution >= 1;
+  renderer.ao = ao && {
+    blendIntensity: 0.75, radius: 0.12, distanceExponent: 1.4, thickness: 0.06, scale: 1.0, samples: ao.samples, resolution: ao.resolution,
+    denoise: { lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: full ? 6 : 4, rings: 2, samples: ao.denoiseSamples, radiusExponent: 2 },
   };
   // High threshold: only specular glints and bright highlights bloom.
   // minor 30: this page ran three r160, so r160's UnrealBloomPass (model "r160") at the page's own strength.
-  renderer.bloom = look.bloom ? { model: "r160", strength: 0.28, radius: 0.35, threshold: 0.92, resolution: look.budget.bloomRes } : null;
+  renderer.bloom = look.bloom !== null ? { model: "r160", strength: 0.28, radius: 0.35, threshold: 0.92, resolution: look.bloom } : null;
   // The browser build's grade pass: a gentle S-curve, +10 % saturation, warm highlights / cool shadows, the 0.3 vignette.
   renderer.grade = look.grade ? {
     space: "display", contrastCurve: "s", contrast: 0.22, saturation: 1.1, // the page's S-curve after OutputPass
@@ -629,6 +631,10 @@ function applyGraphics(): void {
     vignette: { amount: 0.3, inner: 0.32, outer: 0.8, scale: [1, 0.85] },
   } : null;
   renderer.antialias = look.antialias;
+  // The level's anisotropic filtering on the cloth weave and the ball skins.
+  for (const t of [clothTex, ...ballTex.values()]) {
+    if (t && t.anisotropy !== look.anisotropy) { t.anisotropy = look.anisotropy; t.needsUpdate = true; }
+  }
   cueStick.material = cueMaterial();
   buildEnvironment();
   buildTable();

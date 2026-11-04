@@ -20,14 +20,14 @@
     "js/rng.js": {"sha256": "2f669d2fa005a53bbed05df7abfa410bdbc1a7ba707e5d266c268344242b9ee6", "size": 2464},
     "js/rules.js": {"sha256": "3b2084f78bdd61d4f650acbbde8fa61f7f8bab615c5552153b3cbc1fa58e2839", "size": 34350},
     "js/session.js": {"sha256": "0d927d62114c99ad87010675757782be9cec7a65cb23013cf18fd5e9d1fd0b93", "size": 14335},
-    "native/audio.ts": {"sha256": "92ee8b1d80e21eb3f11c209518057703ac3530eb2a863bfec531320d63252196", "size": 4391},
+    "native/audio.ts": {"sha256": "89b493575971401b23f5809e832163d4d17f38761d6588986de97616677e7683", "size": 4035},
     "native/classic.ts": {"sha256": "73e94d3cc817118a8e9c09e0d621e2c429be37afacfe32e3fc5e0d91e22d0be8", "size": 7120},
     "native/i18n.ts": {"sha256": "a5cc1d07c83f93ed18a43b9f4f5cc47ba55a4a7af173e7a1356ca445268b82e7", "size": 1903},
-    "native/main.ts": {"sha256": "d7c487b73151aca6cf132e55faea9905e77db9b26340727e4a0b92737d0fc977", "size": 26466},
+    "native/main.ts": {"sha256": "506633519299f64f4b3371bde06a402fbb2ce0fe0c8a69bf7ba5843d853ca7af", "size": 26486},
     "native/platform.ts": {"sha256": "df707938e859a49a63d14174794a663a6eb1305d44d5123143a1acd3b3faf413", "size": 9755},
-    "native/quality.ts": {"sha256": "23539be70fac516dc9da2d10515d6450eeba61347562b0cc8f08fb763c8183c8", "size": 4041},
-    "native/render.ts": {"sha256": "e7eb1cf48e4fe778681447c17ec20016912f2ece4446aff1a52543d5e6335512", "size": 38917},
-    "native/screens.ts": {"sha256": "e1f10f52b4ccf212197aab6254ae176d263c23859cba723022aeab4063414796", "size": 49738},
+    "native/quality.ts": {"sha256": "56d230b62e2d979af650e3d9506c3912e423e9538887d720caaaa6170211cd51", "size": 4617},
+    "native/render.ts": {"sha256": "dad92d7898056381200956db6184c0e2f55bea333055916607b00ed7b43e5287", "size": 39346},
+    "native/screens.ts": {"sha256": "fc9f1d553fb6091d355f4c0a687259a307eb8f8377f8133a11d53ef7150a5f37", "size": 49331},
     "native/style.ts": {"sha256": "6b09f5f9146209841f3fff7bfd1e58a501b8ed70911cdbb3f39e311483938ae8", "size": 2911},
     "score-script.js": {"sha256": "804b74708c2868c6d64d2fd6088f96ca6501c19c77dce9cf9604e7710942b3ed", "size": 2491},
     "sfx/achievement-sparkle.opus": {"sha256": "647d14d64a34f9e78bf03cffa90a7439911d78a4501d317e4431f60924c855e5", "size": 36097},
@@ -54,7 +54,7 @@
     "sfx/ui-confirm.opus": {"sha256": "aa765929bf5795657daea2fbcb3f231d142f9745e9b0b6fb74eeda6aa9131972", "size": 13967},
     "sfx/undo-rewind.opus": {"sha256": "be6ce22dffd6e79075c456197fb1f5b8b4c498f5822b85ab46dd6db27a639d58", "size": 11427},
     "sfx/win-fanfare.opus": {"sha256": "fd8be2ecf862b9de85e3ca8983a3913e8d5dc43a912145b524dc9b7b510a1c27", "size": 42191},
-    "starhermit.txt": {"sha256": "712e3c56549d582940a02dbbf77e629974a616cefbf2163696a6d86bc04244dc", "size": 2073}
+    "starhermit.txt": {"sha256": "75fd95aab8111c1da9d0e37c2c62ae2eaa8f72690a8fe0ae87e6c3fa7759c6f9", "size": 2215}
   },
   "excluded": ["coverart.png", "node_modules/", "package-lock.json", "package.json", "server.js", "spec.md", "tests/", "tools/", "tsconfig.json"],
   "format": 1

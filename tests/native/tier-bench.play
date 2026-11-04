@@ -1,0 +1,31 @@
+# Graphics-tier bench (tools/engine-tier-bench.mjs): Journey stage 1 (First
+# Stroke, a fixed rack; the hinted shots journey-stage.play makes), settled,
+# then two shots measured with their rolls, clicks, drops and sparks.
+until 300 Play
+frames 30
+click =Play
+until 60 First Stroke
+frames 10
+click Start
+frames 5
+until 120 Shots left 5
+frames 120
+measure start
+key KeyH 1
+frames 2
+key Enter 1
+frames 113
+expect Score 100 ·
+key KeyH 1
+frames 2
+key ArrowLeft 1
+frames 2
+key ArrowUp 1
+frames 2
+key ArrowUp 1
+frames 2
+key Enter 1
+frames 141
+expect Score 200 ·
+frames 300
+measure stop

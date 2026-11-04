@@ -23,6 +23,7 @@ engine.capabilities=platform,storage,clipboard
 # the power slider, the spin pad and the buttons work by pointer and touch.
 control.aim_left=ArrowLeft | Aim left (Shift: finer)
 control.aim_right=ArrowRight | Aim right (Shift: finer)
+control.fine_aim=ShiftLeft+ShiftRight | Fine aim (hold with aim)
 control.power_up=ArrowUp+Equal+NumpadAdd | More power
 control.power_down=ArrowDown+Minus+NumpadSubtract | Less power
 control.shoot=Enter+Space | Shoot / place cue ball
@@ -37,9 +38,11 @@ engine.group.pause=Game
 
 # Gamepad defaults for the same actions: the D-pad or left stick aims
 # (left/right) and sets power (up/down), A shoots or places, Y hints, X
-# undoes, the right shoulder skips a replay, Start pauses, B backs out.
+# undoes, the left shoulder held fines the aim, the right shoulder skips a
+# replay, Start pauses, B backs out.
 engine.gamepad.aim_left=DpadLeft+LeftStickLeft
 engine.gamepad.aim_right=DpadRight+LeftStickRight
+engine.gamepad.fine_aim=LeftShoulder
 engine.gamepad.power_up=DpadUp+LeftStickUp
 engine.gamepad.power_down=DpadDown+LeftStickDown
 engine.gamepad.shoot=South
