@@ -4,13 +4,12 @@
 // the 36 journey stages, challenges, lessons, practice presets, the daily,
 // achievements), the session controller (js/session.js: phases, AI pacing,
 // undo, lessons, the replay envelope), the progression save (js/progress.js)
-// and the string tables (js/locales/*.js, js/i18n.js), evaluated as classic
+// evaluated as classic
 // scripts so their globals are this module's exports.
 import { loadClassic } from "starhermit:script";
 
 for (const f of [
   "js/rng.js", "js/rules.js", "js/content.js", "js/session.js", "js/progress.js",
-  "js/locales/en-GB.js", "js/locales/es.js", "js/locales/de.js", "js/locales/fr.js", "js/locales/pt.js", "js/locales/it.js", "js/i18n.js",
 ]) loadClassic(f);
 
 // -- The shapes this client reads -------------------------------------------------
@@ -96,12 +95,10 @@ interface RngApi {
   create(seed: number): { next(): number; int(n: number): number };
   derive(seed: number, stream: number): { next(): number; int(n: number): number };
 }
-interface I18nApi { T(key: string, vars?: Record<string, string | number> | null): string; setLocale(tag: string): string; readonly lang: string; LOCALES: string[] }
 
-const g = globalThis as unknown as { CCRules: RulesApi; CCContent: ContentApi; CCSession: SessionModule; CCProgress: ProgressApi; CCRNG: RngApi; CQCI18n: I18nApi };
+const g = globalThis as unknown as { CCRules: RulesApi; CCContent: ContentApi; CCSession: SessionModule; CCProgress: ProgressApi; CCRNG: RngApi };
 export const Rules = g.CCRules;
 export const Content = g.CCContent;
 export const Session = g.CCSession;
 export const Progress = g.CCProgress;
 export const RNG = g.CCRNG;
-export const I18n = g.CQCI18n;

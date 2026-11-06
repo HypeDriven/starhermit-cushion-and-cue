@@ -24,11 +24,11 @@ import * as ui from "starhermit:ui";
 import { requestSignIn } from "starhermit:platform";
 import * as audio from "./audio.ts";
 import { Content, Progress, Rules, type State } from "./classic.ts";
-import { T } from "./i18n.ts";
+import { SH, T } from "./i18n.ts";
 import * as platform from "./platform.ts";
 import * as render from "./render.ts";
 import {
-  aim, app, doHint, doUndo, goBack, keepsArrows, lessonEvent, lessonText, mirrorText, nextStage, objectiveText,
+  aim, app, toast, doHint, doUndo, goBack, keepsArrows, lessonEvent, lessonText, mirrorText, nextStage, objectiveText,
   openDaily, openHelp, openLesson, openPlay, openPractice, openSettings, openSetup, pauseGame, pauseToSettings, pendingConfig,
   pendingMode, placePoint, quitToHome, replaying, restartGame, resultsHeadline, resumeGame, retryGame, sess, setPower, setSpin,
   showScreen, skipReplay, startGame, tablePointer, toggleDrawer, tryPlace, tryShoot, turnText, settings,
@@ -38,12 +38,11 @@ import { COLORS, COLORS_HC } from "./style.ts";
 // ------------------------------------------------------------------ layout
 interface Layout { lw: number; lh: number; sc: number; ox: number; oy: number; wide: boolean; phone: boolean; shortLand: boolean; narrowMenu: boolean }
 function layoutNow(): Layout {
-  const f = frame();
-  const sc = ui.preferences().scale;
-  const sa = f.safeArea;
-  const lw = Math.max(1, (f.width - sa.left - sa.right) / sc), lh = Math.max(1, (f.height - sa.top - sa.bottom) / sc);
+  const v = ui.viewport!();
+  const sc = v.scale;
+  const lw = Math.max(1, v.width), lh = Math.max(1, v.height);
   const shortLand = lw > lh && lh <= 500;
-  return { lw, lh, sc, ox: sa.left, oy: sa.top, wide: lw >= 1024 && !shortLand, phone: lw <= 700 && lh >= lw, shortLand, narrowMenu: lw <= 700 };
+  return { lw, lh, sc, ox: v.x * sc, oy: v.y * sc, wide: lw >= 1024 && !shortLand, phone: lw <= 700 && lh >= lw, shortLand, narrowMenu: lw <= 700 };
 }
 const colors = (): typeof COLORS => (ui.preferences().highContrast ? COLORS_HC : COLORS);
 const hexCss = (c: number): string => "#" + (c >>> 0).toString(16).padStart(6, "0");
@@ -196,7 +195,6 @@ export function drawScreens(): void {
       default: homeScreen(L); break;
     }
   }
-  toasts(L);
 }
 
 // ------------------------------------------------------------------ pages
@@ -261,14 +259,14 @@ function homeScreen(L: Layout): void {
       }
       para(accountLine(), sw, "muted", "account-line");
       const acct: Btn[] = [];
-      if (!platform.signedIn()) acct.push({ id: "btn-signin", text: T("Sign in with StarHermit"), style: ["btn", "btn-ghost"], act: () => { void requestSignIn().catch(() => undefined); } });
+      if (!platform.signedIn()) acct.push({ id: "btn-signin", text: SH("signIn"), style: ["btn", "btn-ghost"], act: () => { void requestSignIn().catch(() => undefined); } });
       const link = platform.inviteLink();
       if (link) {
         acct.push({
-          id: "btn-invite", text: T("Invite a friend"), style: ["btn", "btn-ghost"],
+          id: "btn-invite", text: SH("invite"), style: ["btn", "btn-ghost"],
           act: () => {
-            try { clipboard.writeText(link); toastNow(() => T("Invite link copied to the clipboard.")); }
-            catch { toastNow(() => T("Could not copy — invite link: {link}", { link })); }
+            try { clipboard.writeText(link); toast(() => SH("inviteCopied")); }
+            catch { toast(() => SH("inviteLink", { link })); }
           },
         });
       }
@@ -492,37 +490,6 @@ function helpScreen(L: Layout): void {
       }, { spacing: 12, align: "start" });
     }
   }, (w) => { void w; button({ id: "btn-help-back", text: T("Back"), act: goBack }); });
-}
-
-// ------------------------------------------------------------------ toasts
-export function toastNow(text: () => string): void { app.toasts.push({ text, until: frame().time + 3.2 }); }
-/** Bottom-centre toasts, drawn over everything and taking no pointer (the browser build's pointer-events: none). */
-function toasts(L: Layout): void {
-  if (!app.toasts.length) return;
-  const c = colors();
-  const texts = app.toasts.map((t) => t.text());
-  const sc = L.sc, size = 15.2 * sc * ui.preferences().textScale;
-  const maxW = Math.min(L.lw - 24, 640) * sc;
-  ui.place("toasts", { anchor: "top-start", x: 0, y: 0 }, () => {
-    ui.widget("", {
-      role: "none", size: { width: 0, height: 0 },
-      draw: () => {
-        const f = frame();
-        let y = f.height - f.safeArea.bottom - 20 * sc;
-        for (let i = texts.length - 1; i >= 0; i--) {
-          const t = texts[i]!;
-          const m = draw.measureText(t, { size, maxWidth: maxW - 36 * sc });
-          const w = Math.min(maxW, m.width + 36 * sc), h = m.height + 20 * sc;
-          const x = (f.width - w) / 2;
-          y -= h;
-          draw.roundRect(x, y, w, h, 8 * sc, c.panel2);
-          draw.strokeRoundRect(x, y, w, h, 8 * sc, c.accent, Math.max(1, sc));
-          draw.text(t, x + 18 * sc, y + 10 * sc, { size, color: c.ink, maxWidth: maxW - 36 * sc });
-          y -= 6 * sc;
-        }
-      },
-    });
-  }, { width: 0, height: 0 });
 }
 
 // ------------------------------------------------------------------ the game screen
@@ -868,8 +835,8 @@ function resultsCard(L: Layout): void {
     }
     const lb = app.lb;
     if (lb) {
-      para(lb === "posting" ? T("Posting score to the leaderboard…") : !lb.posted ? T("Score not posted to the leaderboard.")
-        : lb.rank ? T("Leaderboard rank: #{rank}", { rank: lb.rank }) : T("Score posted to the leaderboard."), w, "muted", "res-leaderboard");
+      para(lb === "posting" ? SH("leaderboardPosting") : !lb.posted ? SH("leaderboardNotPosted")
+        : lb.rank ? SH("leaderboardRank", { rank: lb.rank }) : SH("leaderboardPosted"), w, "muted", "res-leaderboard");
     }
   }, (w) => {
     const list: Btn[] = [{ id: "btn-retry", text: T("Retry"), act: retryGame }];

@@ -24,7 +24,7 @@ import * as ui from "starhermit:ui";
 import { onSessionEnded } from "starhermit:platform";
 import * as audio from "./audio.ts";
 import { Content, Progress, Rules, Session, type Applied, type Cfg, type Lesson, type PhysEvent, type Result, type SessionApi, type State, type Timers, type Trace } from "./classic.ts";
-import { N, T } from "./i18n.ts";
+import { N, SH, T } from "./i18n.ts";
 import * as platform from "./platform.ts";
 import { lookFor } from "./quality.ts";
 import * as render from "./render.ts";
@@ -48,7 +48,6 @@ export const app = {
   /** Frame the screen or overlay opened on (focus moves two frames later; its key must not also close it). */
   openedFrame: 0,
   focusNext: false,
-  toasts: [] as { text: () => string; until: number }[],
   results: null as ResultsView | null,
   lb: null as LbState,
 };
@@ -68,15 +67,15 @@ let playback: Playback | null = null;
 let pendingResults = false;
 export const replaying = (): boolean => !!playback;
 
-const now = (): number => frame().time;
 export function announce(msg: string, assertive = false): void {
   if (msg) ui.announce(msg.slice(0, 500), { politeness: assertive ? "assertive" : "polite" });
 }
-/** A toast (bottom centre, 3.2 s); `text` re-runs each frame so a visible toast follows a language change. */
+const TOAST_OPTIONS = { duration: 3.2, style: "toast", dismissible: false, announce: false, position: "bottom", offset: 4 } as const;
+/** A toast (bottom centre, 3.2 s), taking no pointer. */
 export function toast(text: () => string, assertive = false): void {
-  announce(text(), assertive);
-  app.toasts.push({ text, until: now() + 3.2 });
-  if (app.toasts.length > 4) app.toasts.shift();
+  const t = text();
+  announce(t, assertive);
+  ui.toast!(t, TOAST_OPTIONS);
 }
 
 // ------------------------------------------------------------------ fixed-step timers
@@ -584,7 +583,7 @@ onStart(() => {
 });
 onPreferencesChange(() => applyPrefs());
 platform.onProgressMerged(() => undefined);
-onSessionEnded(() => { toast(() => T("Signed out of StarHermit — progress stays on this device.")); });
+onSessionEnded(() => { toast(() => SH("signedOut")); });
 onSuspend(() => {
   // Hiding the window pauses an active game.
   if (sess && sess.getPhase() === "active" && app.screen === "game") pauseGame("hidden");
@@ -605,8 +604,6 @@ onUpdate((dt) => {
   frameDt = dt;
   applyLook();
   audio.update();
-  const t = now();
-  app.toasts = app.toasts.filter((x) => x.until > t);
 });
 onRender(() => {
   drawScreens();

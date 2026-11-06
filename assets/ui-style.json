@@ -483,6 +483,10 @@
         "end": 18,
         "bottom": 10,
         "start": 18
+      },
+      "text": {
+        "color": "$ink",
+        "size": 15.2
       }
     },
     ".toast-text": {
