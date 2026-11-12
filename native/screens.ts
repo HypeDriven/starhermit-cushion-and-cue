@@ -1,3 +1,7 @@
+import { localizedStyle as __l10nStyle } from "./l10n/font.ts";
+import { localizedDrawOptions as __l10nDrawOptions } from "./l10n/font.ts";
+// localization-runtime:attached
+import { openLocalizedOptions as __l10nOptions } from "./l10n/menu.ts";
 // The browser build's DOM shell (index.html + css/style.css, built by
 // js/ui.js) as starhermit:ui, built every frame: home (the key-art hero, the
 // menu, the player name, account line, sign-in / invite and progress), the
@@ -17,7 +21,26 @@
 // tall: the table beside a 220 px action column); left-handed mirrors the
 // rails and the drawer. Symbols the system fonts may lack (★ ☆ 🔒 ✓ 🏆 ⏎)
 // are drawn.
-import { clipboard, frame, openMenu } from "starhermit:engine";
+// The browser build's DOM shell (index.html + css/style.css, built by
+// js/ui.js) as starhermit:ui, built every frame: home (the key-art hero, the
+// menu, the player name, account line, sign-in / invite and progress), the
+// Journey, Learn, Practice and Challenges lists, the setup card, Settings
+// (the game's own options: theme, left-handed layout, the first lesson
+// again; everything else is the runtime's Options), Help, and the game
+// screen — the top bar (objective, turn, score), the objective rail
+// (objective, shots, the legal-target chips, simulated table time), the
+// table between the rails (render.ts draws it there; the table area is a
+// region taking the drag), the action rail (lesson banner, Pause / Hint /
+// Undo / Skip replay, the power slider, the spin pad, the aim readout,
+// Place here / Shoot), the pause and results cards and the toasts. The
+// browser's media queries are layouts picked by the window's logical size:
+// wide (≥ 1024 px: three columns), narrow (the action rail below the table,
+// the objective rail a drawer), portrait phone (≤ 700 px: the table at most
+// 58 % of the height above the thumb tray) and short landscape (≤ 500 px
+// tall: the table beside a 220 px action column); left-handed mirrors the
+// rails and the drawer. Symbols the system fonts may lack (★ ☆ 🔒 ✓ 🏆 ⏎)
+// are drawn.
+import { clipboard, frame } from "starhermit:engine";
 import { bindingLabel, bindings } from "starhermit:input";
 import * as draw from "starhermit:draw";
 import * as ui from "starhermit:ui";
@@ -54,7 +77,7 @@ function textWidth(text: string, style: string | readonly string[], kind?: "butt
 function para(text: string, width: number, cls: string | readonly string[] = "body", id?: string): void {
   if (!text) return;
   const styles = typeof cls === "string" ? [cls] : [...cls];
-  let u = ui.style(...styles);
+  let u = ui.style(...__l10nStyle(styles));
   if (id) u = u.id(id);
   if (ui.measureText(text, { style: styles }).width / ui.preferences().scale <= width) u.label(text);
   else u.paragraph(text, width);
@@ -81,15 +104,15 @@ function button(b: Btn, width: number | null = null): boolean {
   if (b.kbd) {
     opts.content = () => {
       ui.row(`${b.id}-face`, () => {
-        ui.style(...faceStyle(style)).label(b.text);
-        ui.style("kbd").label(b.kbd!);
+        ui.style(...__l10nStyle(faceStyle(style))).label(b.text);
+        ui.style(__l10nStyle("kbd")).label(b.kbd!);
       }, { spacing: 6, align: "center" });
     };
   } else if (width != null && buttonWidth(b) > width) {
     const inner = width - 40;
-    opts.content = () => { ui.style(...faceStyle(style), { text: { align: "center" } }).paragraph(b.text, inner); };
+    opts.content = () => { ui.style(...__l10nStyle(faceStyle(style)), __l10nStyle({ text: { align: "center" } })).paragraph(b.text, inner); };
   }
-  if (ui.style(...style, s).id(b.id).button(b.text, opts)) {
+  if (ui.style(...__l10nStyle(style), __l10nStyle(s)).id(b.id).button(b.text, opts)) {
     if (!b.silent) audio.cue("uiClick");
     b.act();
     return true;
@@ -220,7 +243,7 @@ function page(key: string, L: Layout, body: (w: number) => void, footer?: (w: nu
     }
   }, { style: "screen", width: L.lw, height: L.lh, align: "center", spacing: 12, padding: { top: padY, bottom: padY } });
 }
-function h2(text: string, id: string): void { ui.style("h2").id(id).heading(text); }
+function h2(text: string, id: string): void { ui.style(__l10nStyle("h2")).id(id).heading(text); }
 const backBtn = (key: string): ((w: number) => void) => () => { button({ id: `btn-${key}-back`, text: T("Back"), act: goBack }); };
 
 // ------------------------------------------------------------------ home
@@ -236,9 +259,9 @@ function homeScreen(L: Layout): void {
     const heroCls = [hc ? "home-hero-plain" : "home-hero", ...(L.narrowMenu ? ["home-hero-compact"] : [])];
     ui.column("home-hero", () => {
       ui.row("home-title", () => {
-        ui.style("h1").heading("Cushion");
-        ui.style("amp").label("&");
-        ui.style("h1").label("Cue");
+        ui.style(__l10nStyle("h1")).heading("Cushion");
+        ui.style(__l10nStyle("amp")).label("&");
+        ui.style(__l10nStyle("h1")).label("Cue");
       }, { spacing: 12, align: "center" });
       para(T("An intimate cue hall. Aim, spin, and clear the table."), w - 60, "tagline", "tagline");
     }, { style: heroCls, width: w, height: L.narrowMenu ? 160 : L.shortLand || L.lh < 640 ? 150 : 220, justify: "end", spacing: 6 });
@@ -247,9 +270,9 @@ function homeScreen(L: Layout): void {
         para(`${T("Player name")}: ${platform.displayName() || "…"}`, sw, "body", "profile-line");
       } else {
         ui.row("profile-row", () => {
-          ui.style("body").label(T("Player name"));
+          ui.style(__l10nStyle("body")).label(T("Player name"));
           if (nameDraft === null) nameDraft = settings.name;
-          nameDraft = ui.style("field").textField("profile-name", nameDraft, { maxChars: 24, width: Math.min(220, sw - 120) });
+          nameDraft = ui.style(__l10nStyle("field")).textField("profile-name", nameDraft, { maxChars: 24, width: Math.min(220, sw - 120) });
           if (!ui.capturingKeys() && nameDraft !== settings.name) {
             const v = nameDraft.trim() || T("Guest");
             platform.setSetting("name", v);
@@ -314,7 +337,7 @@ function cardButton(id: string, label: string, name: string, sub: string, mark: 
   const markW = mark ? mark.length * 14 + (mark.length - 1) * 3 : 0;
   const subW = Math.min(textWidth(sub, "card-sub") + 2, w * 0.45);
   const nameW = Math.max(60, w - 30 - subW - markW - 24);
-  const clicked = ui.style("card-btn", { width: w }).id(id).button(label, {
+  const clicked = ui.style(__l10nStyle("card-btn"), __l10nStyle({ width: w })).id(id).button(label, {
     disabled,
     content: () => {
       ui.row(`${id}-face`, () => {
@@ -429,24 +452,24 @@ function settingsScreen(L: Layout): void {
     h2(T("Settings"), "settings-title");
     const fw = L.narrowMenu ? w : Math.min(w, 520);
     ui.column("set-display", () => {
-      ui.style("legend").label(T("Display"));
+      ui.style(__l10nStyle("legend")).label(T("Display"));
       ui.row("set-theme-row", () => {
-        ui.style("body").label(T("Theme"));
+        ui.style(__l10nStyle("body")).label(T("Theme"));
         ui.spacer();
         const idx = Math.max(0, Content.THEMES.findIndex((t) => t.id === settings.theme));
-        const next = ui.style({ width: Math.min(240, fw * 0.6) }).id("set-theme").select(T("Theme"), idx, Content.THEMES.map((t) => T(t.name)));
+        const next = ui.style(__l10nStyle({ width: Math.min(240, fw * 0.6) })).id("set-theme").select(T("Theme"), idx, Content.THEMES.map((t) => T(t.name)));
         if (next !== idx) { platform.setSetting("theme", Content.THEMES[next]!.id); render.setTheme(Content.themeById(settings.theme)); }
       }, { width: fw - 30, align: "center", spacing: 10 });
       const lh = ui.id("set-lefthand").checkbox(T("Left-handed controls"), settings.leftHanded);
       if (lh !== settings.leftHanded) { audio.cue("uiClick"); platform.setSetting("leftHanded", lh); }
     }, { style: "fieldset", width: fw, spacing: 10 });
     ui.column("set-learning", () => {
-      ui.style("legend").label(T("Learning"));
+      ui.style(__l10nStyle("legend")).label(T("Learning"));
       button({ id: "set-tutorial", text: T("Replay first lesson"), act: () => openLesson(Content.LESSONS[0]!) });
     }, { style: "fieldset", width: fw, spacing: 10 });
     // Volumes, mute, graphics, language, key bindings, text size, contrast and reduced motion are the runtime's Options.
     para(T("Sound, graphics, language, controls, text size, high contrast and reduced motion are in the StarHermit Options."), fw, "muted", "options-note");
-    button({ id: "btn-options", text: T("Open Options"), act: () => openMenu() });
+    button({ id: "btn-options", text: T("Open Options"), act: () => __l10nOptions() });
   }, backBtn("settings"));
 }
 
@@ -479,7 +502,7 @@ function helpScreen(L: Layout): void {
         for (let k = i; k < Math.min(cards.length, i + cols); k++) {
           const [title, lines] = cards[k]!;
           ui.column(`help-card-${k}`, () => {
-            ui.style("h3").label(title);
+            ui.style(__l10nStyle("h3")).label(title);
             const bullets = lines.length > 1 && k !== 4;
             lines.forEach((ln, j) => {
               if (bullets && !(k === 3 && j === lines.length - 1)) para(`• ${ln}`, cw - 30, "body", `help-${k}-${j}`);
@@ -561,15 +584,15 @@ function gameScreen(L: Layout): void {
       const railBtn = (): void => { if (drawerMode) button({ id: "btn-rail", text: T("Objective"), style: ["btn", "btn-small"], act: () => toggleDrawer() }); };
       if (L.phone) {
         ui.row("top-1", () => { railBtn(); ui.spacer(); para(obj, L.lw - 140, "hud-objective", "hud-objective"); }, { width: L.lw - 24, align: "center", spacing: 10 });
-        ui.row("top-2", () => { ui.style("hud-player").id("hud-player").label(turn); ui.spacer(); ui.style("hud-score").id("hud-score").label(score); }, { width: L.lw - 24, align: "center", spacing: 10 });
+        ui.row("top-2", () => { ui.style(__l10nStyle("hud-player")).id("hud-player").label(turn); ui.spacer(); ui.style(__l10nStyle("hud-score")).id("hud-score").label(score); }, { width: L.lw - 24, align: "center", spacing: 10 });
       } else {
         ui.row("top-1", () => {
           railBtn();
           para(obj, Math.max(120, (L.lw - 24) * 0.42), "hud-objective", "hud-objective");
           ui.spacer();
-          ui.style("hud-player").id("hud-player").label(turn);
+          ui.style(__l10nStyle("hud-player")).id("hud-player").label(turn);
           ui.spacer();
-          ui.style("hud-score").id("hud-score").label(score);
+          ui.style(__l10nStyle("hud-score")).id("hud-score").label(score);
         }, { width: L.lw - 24, align: "center", spacing: 18 });
       }
     }, { style: "game-topbar", width: L.lw, spacing: 6, padding: { top: L.shortLand ? 4 : 8, bottom: L.shortLand ? 4 : 8, start: 12, end: 12 } });
@@ -598,12 +621,12 @@ function gameScreen(L: Layout): void {
 
 function objectiveRail(state: State, w: number, drawer: boolean): void {
   if (drawer) button({ id: "btn-rail-close", text: T("Close"), style: ["btn", "btn-small"], act: () => toggleDrawer(false) });
-  ui.style("rail-heading").label(T("Objective").toUpperCase());
+  ui.style(__l10nStyle("rail-heading")).label(T("Objective").toUpperCase());
   para(objectiveText(state), w, "body", "rail-objective-text");
   para(state.ruleset === "clearance"
     ? T("Shots left: {left} · Taken: {taken}", { left: state.shotsLeft, taken: state.shotCount })
     : T("Turn {n} · Shots: {shots}", { n: state.turn + 1, shots: state.shotCount }), w, "body", "rail-shots");
-  ui.style("rail-heading").label(T("Legal targets").toUpperCase());
+  ui.style(__l10nStyle("rail-heading")).label(T("Legal targets").toUpperCase());
   targetChips(state, w);
   para(T("Table time: {n}s (simulated)", { n: Math.round(state.tick / 240) }), w, "muted", "rail-timer");
 }
@@ -630,7 +653,7 @@ function targetChips(state: State, w: number): void {
         if (!b.potted && targets.includes(b.n)) draw.strokeCircle(cx, cy, rad - k, "#ffd970", 2 * k);
         const ink = b.n === 8 ? "#f0e8d8" : "#14100c";
         const ts = 13.6 * k;
-        draw.text(String(b.n), cx, cy - ts * 0.62, { size: ts, weight: "700", color: withAlpha(ink, alpha), align: "center" });
+        draw.text(String(b.n), cx, cy - ts * 0.62, __l10nDrawOptions({ size: ts, weight: "700", color: withAlpha(ink, alpha), align: "center" }));
         if (b.potted) draw.line(cx - rad * 0.5, cy, cx + rad * 0.5, cy, withAlpha(ink, alpha), Math.max(1, k * 1.5));
       });
     },
@@ -700,18 +723,18 @@ function actionRail(L: Layout, state: State, r: Rect): void {
   if (locked) hudBtns.push({ id: "btn-skip", text: T("Skip replay"), style: ["btn", "btn-small"], act: () => { skipReplay(); ui.setFocus(keepsArrows.table); } });
   const powerBlock = (bw: number): void => {
     ui.column("power-block", () => {
-      ui.style("control-label").label(T("Power"));
+      ui.style(__l10nStyle("control-label")).label(T("Power"));
       const label = T("Power");
       keepsArrows.power = label;
-      const v = ui.style({ width: bw }).id("power-slider").slider(label, aim.power, { min: 0, max: 1000, step: 10, width: bw });
+      const v = ui.style(__l10nStyle({ width: bw })).id("power-slider").slider(label, aim.power, { min: 0, max: 1000, step: 10, width: bw });
       if (!locked && v !== aim.power) setPower(v);
-      ui.style("muted").id("power-value").label(`${Math.round(aim.power / 10)}%`);
+      ui.style(__l10nStyle("muted")).id("power-value").label(`${Math.round(aim.power / 10)}%`);
     }, { spacing: 4, width: bw });
   };
   const padSize = column ? (L.shortLand ? 96 : 120) : 96;
   const spinBlock = (bw: number): void => {
     ui.column("spin-block", () => {
-      ui.style("control-label").label(T("Spin"));
+      ui.style(__l10nStyle("control-label")).label(T("Spin"));
       spinPad(padSize, locked);
       para(spinText(), bw, "muted", "spin-value");
     }, { spacing: 4, width: bw });
@@ -774,7 +797,7 @@ function overlayCard(key: string, L: Layout, body: (w: number) => void, footer: 
   const aH = art ? (lastHeight.get(`${key}:a`) ?? 0) + 8 : 0;
   const bodyMax = Math.max(60, room - fH - aH);
   const bh = lastHeight.get(`${key}:b`) ?? 0;
-  ui.style("overlay-card").dialog(key, "", true, () => {
+  ui.style(__l10nStyle("overlay-card")).dialog(key, "", true, () => {
     ui.column(`${key}-card`, () => {
       const inside = (w: number): void => {
         const r = ui.column(`${key}-body`, () => body(w), { width: w, spacing: 8 });
@@ -814,15 +837,15 @@ function resultsCard(L: Layout): void {
     ui.column("res-breakdown", () => {
       for (const [label, val] of rows) {
         ui.row(`bd-${label}`, () => {
-          ui.style("breakdown-dt").label(label);
+          ui.style(__l10nStyle("breakdown-dt")).label(label);
           ui.spacer();
-          ui.style("breakdown-dd").label((val >= 0 ? "+" : "") + val);
+          ui.style(__l10nStyle("breakdown-dd")).label((val >= 0 ? "+" : "") + val);
         }, { style: "breakdown-row", width: w, align: "center" });
       }
       ui.row("bd-total", () => {
-        ui.style("total-row").label(T("Total"));
+        ui.style(__l10nStyle("total-row")).label(T("Total"));
         ui.spacer();
-        ui.style("total-row").id("res-total").label(String(r.score.total));
+        ui.style(__l10nStyle("total-row")).id("res-total").label(String(r.score.total));
       }, { width: w, align: "center", padding: { top: 4 } });
     }, { spacing: 4, width: w });
     para(T("{shots} shots · {pots} pots · {fouls} fouls · {secs}s simulated", { shots: r.shots, pots: r.pots, fouls: r.fouls, secs: Math.round(r.elapsedTicks / 240) }), w, "muted", "res-detail");

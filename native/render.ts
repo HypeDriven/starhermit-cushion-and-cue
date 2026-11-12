@@ -1,3 +1,5 @@
+// localization-runtime:attached
+import { localizedCanvasFont as __l10nCanvasFont } from "./l10n/font.ts";
 // The cue hall on starhermit:scene, as the browser build's js/render.js drew
 // it with three.js: the table (cloth tinted by the theme with the authored
 // felt weave, six cushion rails, the wood surround, pockets with leather lips
@@ -91,7 +93,7 @@ function ballTexture(n: number, hc: boolean, size: number): Texture {
       g.fillStyle = hc ? "#ffffff" : "#f6f1e6";
       g.beginPath(); g.arc(x, y, 22, 0, PI * 2); g.fill();
       g.fillStyle = "#141414";
-      g.font = `bold ${n >= 10 ? 24 : 30}px sans-serif`;
+      g.font = __l10nCanvasFont(`bold ${n >= 10 ? 24 : 30}px sans-serif`);
       g.textAlign = "center"; g.textBaseline = "middle";
       g.fillText(String(n), x, y + 2);
     }
