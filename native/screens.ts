@@ -196,7 +196,7 @@ function firstFocus(): string | null {
   }
 }
 
-export function drawScreens(): void {
+function drawScreensImmediate(): void {
   const L = layoutNow();
   if (app.focusNext && frame().frame - app.openedFrame >= 2) {
     const first = firstFocus();
@@ -874,4 +874,11 @@ function resultsCard(L: Layout): void {
       draw: (rr, st) => draw.box(rr.x, rr.y, rr.width, rr.height, { background: [{ image: "assets/results-clear.webp", size: "cover" }, c.panel2], radius: 10 * st.scale }),
     });
   } : undefined);
+}
+
+export function drawScreens(): void {
+  if (app.screen !== "help") { drawScreensImmediate(); return; }
+  const actions = ["aim_left","aim_right","fine_aim","power_up","power_down","shoot","hint","undo","skip","pause","back"];
+  const version = JSON.stringify([(app as any).settings ?? (app as any).options ?? {}, (platform as any).options ?? {}, actions.map((action) => bindings(action))]);
+  ui.retain!("help-screen", version, drawScreensImmediate);
 }
