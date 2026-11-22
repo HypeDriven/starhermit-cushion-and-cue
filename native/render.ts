@@ -633,6 +633,7 @@ function applyGraphics(): void {
     vignette: { amount: 0.3, inner: 0.32, outer: 0.8, scale: [1, 0.85] },
   } : null;
   renderer.antialias = look.antialias;
+  renderer.motionBlur = look.bloom !== null ? { intensity: 0.25, samples: 8, maxPixels: 16, targetFps: 60, camera: false } : null;
   // The level's anisotropic filtering on the cloth weave and the ball skins.
   for (const t of [clothTex, ...ballTex.values()]) {
     if (t && t.anisotropy !== look.anisotropy) { t.anisotropy = look.anisotropy; t.needsUpdate = true; }
