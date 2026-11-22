@@ -12,7 +12,7 @@
     "metadataSource": "starhermit.txt",
     "createdAt": "2026-09-01T07:00:59.893422+00:00",
     "coverArtSource": "manifest",
-    "coverArtUpdatedAt": "2026-11-18T16:51:09.103441+00:00",
+    "coverArtUpdatedAt": "2026-11-22T14:19:48.859962+00:00",
     "submittedByUserId": "2712e04e-461b-4d23-81ae-e40b429128a8",
     "submittedByUsername": "starhermit",
     "hosting": {
@@ -22,9 +22,9 @@
       "pinnedCommitSha": null,
       "deployedCommitSha": null,
       "deployError": null,
-      "deployedAt": "2026-11-18T16:51:09.091464+00:00",
+      "deployedAt": "2026-11-22T14:19:48.847512+00:00",
       "externalLaunchUrl": null,
-      "engineVersion": "1.44.1",
+      "engineVersion": "1.47.0",
       "deployWarning": null
     },
     "description": "Aim with power and spin to clear pool-table challenges or take on the house in a game of 8-ball.",
@@ -36,19 +36,19 @@
     "links": [],
     "isDisabled": false
   },
-  "publishedAt": "2026-11-18T16:51:09.010Z",
-  "sourceCommit": "a9151f52245216d5fe3ea2b1c726394fd4e6abee",
-  "bytesReceived": 3163850,
-  "archiveSha256": "af1706b4b4a2c268c44c2f47de5eb5e5882a8f3d969594f2ee525f863fafdb2d",
+  "publishedAt": "2026-11-22T14:19:49.212Z",
+  "sourceCommit": "e30f2aa92b3bc4bd08be2a22568706ca8ae8edef",
+  "bytesReceived": 3163695,
+  "archiveSha256": "db894a5de03d43dde14607e86d8ee0049ae3afdee695cbae05c3c08be83fbde2",
   "indexSha256": "20181e5fccf6a98c81b489aea80f488c308d592a76ba685ee0313d555a61229a",
   "result": {
     "clientPublished": true,
     "serverImageLoaded": false,
     "imageDigest": null,
-    "bytesReceived": 3163850,
+    "bytesReceived": 3163695,
     "mode": "replace",
     "filesRemoved": 0,
-    "engineVersion": "1.44.1",
+    "engineVersion": "1.47.0",
     "deployWarning": null
   },
   "liveVerification": {
