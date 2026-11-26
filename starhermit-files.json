@@ -44,7 +44,7 @@
     "native/render.ts": {"sha256": "ec6730ef9bc28c932afd542ac8c7f78bcfba29982d5bf97268ff04710a63fd15", "size": 39602},
     "native/screens.ts": {"sha256": "0cb76229a8229e1b0f7a8725af73f61071ef7588e7cb620d979233cbed599b20", "size": 50234},
     "native/style.ts": {"sha256": "0e3f5b8792215eaef1a804a9522ebba75184161ecb8f699cfd80b5d3a4f1b131", "size": 3013},
-    "publication.json": {"sha256": "379d9b5c8b2154c61d32b4ecbdaa49898171189dcc753eba1ee3bbf2a8e034f0", "size": 4136},
+    "publication.json": {"sha256": "7ced011d5d8e3cc3f6d65b18388e41c79af48a99da6ec3e64be142fa44975207", "size": 4136},
     "score-script.js": {"sha256": "804b74708c2868c6d64d2fd6088f96ca6501c19c77dce9cf9604e7710942b3ed", "size": 2491},
     "sfx/achievement-sparkle.opus": {"sha256": "647d14d64a34f9e78bf03cffa90a7439911d78a4501d317e4431f60924c855e5", "size": 36097},
     "sfx/ball-click-hard.opus": {"sha256": "8f068f0a6ceec6a57870e643a0ccbdb407955ff3a6f611f38977babdf3fd7ef6", "size": 11511},
