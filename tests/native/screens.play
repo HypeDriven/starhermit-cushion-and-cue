@@ -80,7 +80,9 @@ save daily-game
 click Hint
 frames 10
 click Shoot
-frames 20
+# The Daily rack is the UTC day's, so the replay's length varies by date
+# (2026-11-26's hinted shot settles in 20 frames): skip it at once.
+frames 2
 save replaying
 click Skip replay
 frames 20
