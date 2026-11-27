@@ -11,7 +11,7 @@ This document describes Cushion & Cue as it ships today, a StarHermit engine scr
 | Genre | Turn-based precision sport (pool / cue sports) |
 | Players | Solo clearance; 8-ball vs deterministic house AI or two-player hotseat on one device |
 | Session length | 1–4 minutes per clearance table, 5–10 minutes per 8-ball match |
-| Platforms | A StarHermit engine script game (engine 1.51.0, host API 1.51, `engine.minor=51`): played natively by the StarHermit client and in browsers by the engine's web runtime (desktop and mobile, portrait and landscape); keyboard, gamepad, mouse, touch |
+| Platforms | A StarHermit engine script game (engine 1.53.0, host API 1.53, `engine.minor=53`): played natively by the StarHermit client and in browsers by the engine's web runtime (desktop and mobile, portrait and landscape); keyboard, gamepad, mouse, touch |
 | Rendering | `starhermit:scene` (three-like): the top-down cue-hall scene in the table's rectangle; menus, HUD and controls are `starhermit:ui` (immediate mode, styled from `assets/ui-style.json`) |
 | Backend | `score-script.js` is the StarHermit platform script (leaderboard posting only); `server.js` is a local dev server; the game is fully playable offline |
 
@@ -19,7 +19,7 @@ This document describes Cushion & Cue as it ships today, a StarHermit engine scr
 
 | Path | Role |
 |---|---|
-| `starhermit.txt` | Manifest: `launch=index.html`, `engine.api=1`, `engine.entry=native/main.ts`, `engine.version=1.51.0`, `engine.minor=51`, `engine.capabilities=platform,storage,clipboard`, the actions with keys and gamepad controls, name/description/owner/`server=score-script.js`/cover |
+| `starhermit.txt` | Manifest: `launch=index.html`, `engine.api=1`, `engine.entry=native/main.ts`, `engine.version=1.53.0`, `engine.minor=53`, `engine.capabilities=platform,storage,clipboard`, the actions with keys and gamepad controls, name/description/owner/`server=score-script.js`/cover |
 | `native/main.ts` | Entry module: screen router, session events, results with progression and achievements, aim / power / spin / place input, fixed-step replay and timers, lifecycle |
 | `native/screens.ts` | Every screen, the game HUD, rails, table region, spin pad, pause and results cards, toasts (`starhermit:ui`); layouts by window size |
 | `native/render.ts` | The cue hall on `starhermit:scene`: table, balls, cue, guide, ghosts, sparks, motes, room; camera view offset into the table rectangle; picking |
@@ -306,12 +306,14 @@ The string tables include complete regional variants for `fr-BE`, `de-BE`, `en-S
 
 <!-- regional-localization:end -->
 
-## Engine 1.51.0
+## Engine 1.53.0
 
-Browser play uses the StarHermit 1.51.0 web runtime on WebGPU, or WebGL 2 where WebGPU is missing. Automatic ray-traced shadows are enabled on supported Vulkan devices, with mapped-shadow fallbacks elsewhere. Packaging creates block-compressed runtime textures and compressed glTF copies, retaining original image fallbacks.
+Browser play uses the StarHermit 1.53.0 web runtime on WebGPU, or WebGL 2 where WebGPU is missing. Automatic ray-traced shadows are enabled on supported Vulkan devices, with mapped-shadow fallbacks elsewhere. Packaging creates block-compressed runtime textures and compressed glTF copies, retaining original image fallbacks.
 
 The help screen replays through retained native UI while its contents, options, layout and key bindings are unchanged.
 
 Browser rendering uses the engine's asynchronous pipeline creation so newly encountered materials do not stall the page. Native play retains the engine's synchronous pipeline behavior.
 
 Higher graphics tiers use native per-object motion blur for moving pieces and effects. Camera motion stays sharp, lower tiers omit the effect, and the runtime's Motion blur and Reduce motion preferences remain authoritative.
+
+On engine 1.53.0, browser play through WebGL 2 compiles a frame's shader programs together and holds that frame until they are linked, blends skinned meshes in one pass, reuses the window pass's depth, and uses a hardware WebGL 2 context when WebGPU's adapter is software.
